@@ -1,8 +1,20 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="utf-8">
+  <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+  <script type="text/javascript"> window.CSRF_TOKEN = "{{ csrf_token }}"; window.username = "{{ username }}"; </script>
+  <script src="https://code.jquery.com/jquery-3.2.1.min.js"></script>
+  <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css">
+  <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js"></script>
+  <script src="https://ajax.googleapis.com/ajax/libs/angularjs/1.6.4/angular.min.js"></script>
+  <title>Arkalos</title>
 </head>
 <body>
+<div id="main_div" ng-app="arkalos_App" ng-controller="arkalos_Ctrl" ng-init="init()">
+{% include "app/navbar.html" %}
+{% include "app/registration.html" %}
+</div>
+<script src="/static/app/arkalos_App.js"></script>
+<script src="/static/app/arkalos_Ctrl.js"></script>
 </body>
 </html>

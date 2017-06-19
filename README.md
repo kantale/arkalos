@@ -11,6 +11,11 @@ Enter the environment with
 source anaconda3/bin/activate arkalos
 ```
 
+Install prerequisites:
+```bash
+conda install -y simplejson 
+```
+
 The current django version of Arkalos is:
 ```bash
 $  python -m django --version
