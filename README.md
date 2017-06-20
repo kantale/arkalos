@@ -14,6 +14,7 @@ source anaconda3/bin/activate arkalos
 Install prerequisites:
 ```bash
 conda install -y simplejson 
+pip install pybtex
 ```
 
 The current django version of Arkalos is:

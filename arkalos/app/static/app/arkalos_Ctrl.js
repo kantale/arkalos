@@ -61,6 +61,8 @@ app.controller('arkalos_Ctrl', function($scope, $http) {
 		$scope.tools_error_msg = '';
 		$scope.add_tool_show = false;
 		$scope.tools_show = false;
+		$scope.references_show = false;
+		$scope.references_error_msg = '';
 	};
 
 
@@ -128,6 +130,7 @@ app.controller('arkalos_Ctrl', function($scope, $http) {
 				//alert('login correct');
 				$scope.username = $scope.nav_bar_username;
 				$('#sign_in_dropdown').dropdown('toggle');
+				$scope.initialize_ui();
 			},
 			function(response) {
 				$scope.login_error_msg = response['error_message'];
@@ -159,5 +162,66 @@ app.controller('arkalos_Ctrl', function($scope, $http) {
 	////////////////////////////////////////////////////
 	//////////END OF TOOLS / DATA //////////////////////
 	////////////////////////////////////////////////////
+
+	/////////////////////////////////////////////////////
+	///////////// REFERENCES ////////////////////////////
+	/////////////////////////////////////////////////////
+
+	/*
+	* Clicked "References" from navbar
+	*/
+	$scope.nav_bar_references_clicked = function() {
+		$scope.initialize_ui();
+		$scope.references_show = true;
+	};
+
+	/*
+	* Clicked "Add Reference"
+	*/
+	$scope.references_table_add_button_clicked = function() {
+		if ($scope.username == '') {
+			$scope.references_error_msg = 'Login to add a reference';
+		}
+		else {
+			$scope.add_reference_show = true;
+		}
+	};
+
+	/*
+	* clicked "Cancel" in "Add References"
+	*/
+	$scope.add_reference_cancel_clicked = function() {
+		$scope.references_show = false;
+	};
+
+	/*
+	* Clicked "Save" in "Add References"
+	*/
+	$scope.add_reference_save_clicked = function() {
+		$scope.ajax(
+			"add_reference/",
+			{
+				reference_type: "BIBTEX",
+				content: $scope.reference_bibtex_model
+			},
+			function(response) {
+				//Clear form
+				$scope.reference_bibtex_model = '';
+				$scope.add_reference_show = false;
+				$scope.references_error_msg = '';
+			},
+			function(response) {
+				$scope.references_error_msg = response['error_message'];
+			},
+			function(statusText) {
+				$scope.references_error_msg = statusText;
+			}
+		);
+	};
+
+	////////////////////////////////////////////////////
+	//////////END OF REFERENCES ////////////////////////
+	////////////////////////////////////////////////////
+
 
 });
