@@ -6,6 +6,11 @@
   <script src="https://code.jquery.com/jquery-3.2.1.min.js"></script>
   <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css">
   <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-multiselect/0.9.13/css/bootstrap-multiselect.css" type="text/css"/>
+  <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-multiselect/0.9.13/js/bootstrap-multiselect.min.js"></script>
+  <link rel="stylesheet" href="/static/app/arkalos.css">
+  <script type="text/javascript" src="/static/app/ace-builds-1.2.7/src-noconflict/ace.js"></script>
+
   <script src="https://ajax.googleapis.com/ajax/libs/angularjs/1.6.4/angular.min.js"></script>
   <title>Arkalos</title>
 </head>
@@ -13,8 +18,10 @@
 <div id="main_div" ng-app="arkalos_App" ng-controller="arkalos_Ctrl" ng-init="init()">
 {% include "app/navbar.html" %}
 {% include "app/registration.html" %}
+{% include "app/tools.html" %}
 </div>
 <script src="/static/app/arkalos_App.js"></script>
 <script src="/static/app/arkalos_Ctrl.js"></script>
+<script src="/static/app/arkalos.js"></script>
 </body>
 </html>

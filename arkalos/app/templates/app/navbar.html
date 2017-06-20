@@ -15,7 +15,7 @@
     <!-- Collect the nav links, forms, and other content for toggling -->
     <div class="collapse navbar-collapse" id="bs-example-navbar-collapse-1">
       <ul class="nav navbar-nav">
-        <li><a href="#">Tools/Data</a></li>
+        <li ng-class="{active: tools_show}"><a ng-click="nav_bar_tools_clicked()">Tools/Data</a></li>
       </ul>
       <ul class="nav navbar-nav navbar-right">
         <li><a ng-click="nav_bar_signup_clicked()" ng-show="username == ''">Sign Up</a></li>

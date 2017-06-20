@@ -7,6 +7,9 @@ from django.shortcuts import redirect
 
 import simplejson
 
+class ArkalosException(Exception):
+    pass
+
 def fail(error_message=None):
     '''
     Failed AJAX request
@@ -60,8 +63,11 @@ def has_field(field_names, errors):
                 if not field_name in kwargs:
                     if callable(errors):
                         kwargs['error'] = errors(field_name)
-                    elif type(a) is list:
+                    elif type(errors) is list:
                         kwargs['error'] = errors[field_index]
+                    else:
+                        # This should never happen
+                        raise ArkalosException('Unknown error type: {}'.format(type(error).__name__))
                     return f(*args, **kwargs)
 
             return f(*args, **kwargs)
