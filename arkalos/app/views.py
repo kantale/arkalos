@@ -1,7 +1,7 @@
 from django.shortcuts import render
 
 from .arkalos_views import register, login, logout, \
-	add_reference, get_references
+	add_reference, get_references, reference_suggestions
 
 def index(request):
 

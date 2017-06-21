@@ -7,8 +7,23 @@ from django.shortcuts import redirect
 
 from app.models import Reference
 
+import io
+import six
 import simplejson
+
+#https://pybtex.org/
 from pybtex.database import parse_string as parse_reference_string
+
+import pybtex.database.input.bibtex
+import pybtex.plugin
+
+# Globals
+pybtex_style = pybtex.plugin.find_plugin('pybtex.style.formatting', 'plain')()
+pybtex_html_backend = pybtex.plugin.find_plugin('pybtex.backends', 'html')()
+pybtex_parser = pybtex.database.input.bibtex.Parser()
+
+
+sep = '||'
 
 class ArkalosException(Exception):
     pass
@@ -228,7 +243,7 @@ def logoutlocal(request):
 ####REFERENCES#################
 ###############################
 
-def reference_get_code(content):
+def reference_get_fields(content):
     '''
     Get the code of the bibtex entry
     '''
@@ -239,7 +254,42 @@ def reference_get_code(content):
     if p_len > 1:
         return False, 'More than one BIBTEX entries found'
 
-    return True, p.entries.keys()[0]
+    code = p.entries.keys()[0]
+    if not 'title' in p.entries[code].fields:
+        return False, 'Could not find title information'
+    
+    title = p.entries[code].fields['title']
+
+    if not hasattr(p.entries[code], 'persons'):
+        return False, 'Could not find author information'
+
+    if not 'author' in p.entries[code].persons:
+        return False, 'Could not find author information'
+
+    if len(p.entries[code].persons['author']) == 0:
+        return False, 'Could not find author information'
+
+    authors = sep.join([str(x) for x in p.entries[code].persons['author']])
+
+
+    return True, {'code': code, 'title': title, 'authors': authors}
+
+def bibtex_to_html(content):
+    '''
+    Convert bibtex to html
+    Adapted from: http://pybtex-docutils.readthedocs.io/en/latest/quickstart.html#overview 
+    '''
+    data = pybtex_parser.parse_stream(six.StringIO(content))
+    data_formatted = pybtex_style.format_entries(six.itervalues(data.entries))
+
+    output = io.StringIO()
+    pybtex_html_backend.write_to_stream(data_formatted, output)
+    html = output.getvalue()
+
+    html_s = html.split('\n')
+    html_s = html_s[9:-2]
+    new_html = '\n'.join(html_s).replace('<dd>', '').replace('</dd>', '')
+    return new_html
 
 @has_data
 @has_field(['content'], 'BIBTEX content is required')
@@ -250,18 +300,24 @@ def add_reference(request, **kwargs):
     '''
 
     content = kwargs['content']
-    s, code = reference_get_code(content)
-    if not s:
-        return fail(code)
 
-    if db_exists(Reference, {'code': code}):
+    s, fields = reference_get_fields(content)
+    if not s:
+        return fail(fiels)
+
+    if db_exists(Reference, {'code': fields['code']}):
         return fail('BIBTEX entry with code {} already exists'.format(code))
+
+    html = bibtex_to_html(content)
 
     r = Reference(
         user=get_user(request),
-        code=code,
+        code=fields['code'],
+        title=fields['title'],
+        authors=fields['authors'],
         content=content,
         reference_type='BIBTEX',
+        html = html,
         )
     r.save()
 
@@ -274,10 +330,19 @@ def get_references(request, **kwargs):
     '''
     bindings = {
         'id': 'code',
-        'content': 'content',
+        'content': 'html',
     }
     return serve_boostrap_table(Reference, bindings, 'id', **kwargs)
 
+@has_data
+def reference_suggestions(request, **kwargs):
+    query = kwargs['query']
+
+    querySet = Reference.objects.filter(content__icontains = query)[:10]
+    ret = [ {'value' : entry.code, 'html': entry.html} for entry in querySet]
+
+    json = simplejson.dumps(ret)
+    return HttpResponse(json, content_type='application/json')
 
 ###############################
 ######END OF REFERENCES########

@@ -9,6 +9,7 @@ urlpatterns = [
     url(r'^logout/$', views.logout, name='logout'),
     url(r'^add_reference/$', views.add_reference, name='add_reference'),
     url(r'^get_references/$', views.get_references, name='get_references'),
+    url(r'^reference_suggestions/$', views.reference_suggestions, name='reference_suggestions'),
 
 ]
 
