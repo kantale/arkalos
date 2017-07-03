@@ -63,6 +63,7 @@
           		<textarea id="tool_description" class="form-control" name="tool_description" placeholder="Insert a description for this tool" rows="5" ng-model="tool_description_model"></textarea>
           	</div>
           </div>
+
           <div class="form-group">
           	<label class="col-sm-2 control-label" for="textinput">Installation</label>
           	<div class="col-sm-10">
@@ -70,18 +71,50 @@
             </div>
           </div>
 
-           <div class="form-group">
-             <label class="col-sm-2 control-label" for="textinput">References</label>
-           	 <div class="col-sm-10">
-           	   <div id="vvvv" class="category-container">
-           	     <input type="text" data-role="tagsinput" class="form-control" id="sss4d">
-           	   </div>
-           	 </div>
-           </div>
+          <div class="form-group">
+            <label class="col-sm-2 control-label" for="textinput">References</label>
+           	<div class="col-sm-10">
+           	  <div id="ta_tools_ref" class="category-container">
+           	    <input type="text" data-role="tagsinput" class="form-control">
+           	  </div>
+           	</div>
+          </div>
+
+          <div class="form-group">
+            <div class="col-sm-offset-2 col-sm-10">
+              <div class="pull-right">
+                <button class="btn btn-default" ng-click="add_tools_cancel_clicked()" >Cancel</button>
+                <button class="btn btn-primary" ng-click="add_tools_save_clicked()" >Save</button>
+              </div>
+            </div>
+          </div>
+
+
 
         </fieldset>
       </form>
     </div>
   </div>
+
+  <div class="row" >
+		<div class="col-md-12" id="tools_table_div" >
+		  <div id="tools_table_toolbar">
+		    <div class="form-inline" role="form">
+		      <button class="btn btn-default" ng-click="tools_table_add_button_clicked()">add Reference</button>
+		    </div>
+		  </div>
+
+		  <table id="tools_table" data-toggle="table" data-url="/get_tools/" data-filter-control="true" data-pagination="true" data-side-pagination="server" data-filter-show-clear="true" data-toolbar="#tools_table_toolbar">
+    	    <thead>
+    	      <tr>
+    	        <th data-field="id" data-filter-control="input" data-width="10%">ID</th>
+    	        <th data-field="content" data-filter-control="input" data-width="90%">Content</th>
+    	      </tr>
+    	    </thead>
+    	  </table>
+
+		</div>
+  </div>
+
 
 </div>

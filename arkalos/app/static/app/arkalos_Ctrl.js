@@ -159,6 +159,14 @@ app.controller('arkalos_Ctrl', function($scope, $http) {
 		$scope.add_tool_show = true;
 	};
 
+	/*
+	* Clicked the "Cancel" button at Tools/Data
+	*/
+	$scope.add_tools_cancel_clicked = function() {
+		alert('sjjj');
+		$scope.add_tool_show = false;
+	};
+
 	////////////////////////////////////////////////////
 	//////////END OF TOOLS / DATA //////////////////////
 	////////////////////////////////////////////////////

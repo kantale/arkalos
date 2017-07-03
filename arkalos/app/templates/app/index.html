@@ -3,15 +3,16 @@
 <head>
   <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
   <script type="text/javascript"> window.CSRF_TOKEN = "{{ csrf_token }}"; window.username = "{{ username }}"; </script>
-  <script src="https://code.jquery.com/jquery-3.2.1.min.js"></script>
-  <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css" type="text/css"/>
-  <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js"></script>
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-multiselect/0.9.13/css/bootstrap-multiselect.css" type="text/css"/>
-  <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-multiselect/0.9.13/js/bootstrap-multiselect.min.js"></script>
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-table/1.11.0/bootstrap-table.min.css" type="text/css"/>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-table/1.11.0/bootstrap-table.min.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-table/1.11.0/extensions/filter-control/bootstrap-table-filter-control.min.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-table/1.11.0/locale/bootstrap-table-en-US.min.js"></script>
+  {% if include_static %}<script src="/static/app/jquery-3.2.1.min.js"></script>{% else %}<script src="https://code.jquery.com/jquery-3.2.1.min.js"></script>{% endif %}
+  {% if include_static %}<link rel="stylesheet" href="/static/app/bootstrap.min.css" type="text/css"/>{% else %}<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css" type="text/css"/>{% endif %}
+  {% if include_static %}<script src="/static/app/bootstrap.min.js"></script>{% else %}<script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js"></script>{% endif %}
+  {% if include_static %}<link rel="stylesheet" href="/static/app/bootstrap-multiselect.css" type="text/css"/>{% else %}<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-multiselect/0.9.13/css/bootstrap-multiselect.css" type="text/css"/>{% endif %}
+  {% if include_static %}<script type="text/javascript" src="/static/app/bootstrap-multiselect.min.js"></script>{% else %}<script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-multiselect/0.9.13/js/bootstrap-multiselect.min.js"></script>{% endif %}
+  {% if include_static %}<link rel="stylesheet" href="/static/app/bootstrap-table.min.css" type="text/css"/>{% else %}<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-table/1.11.0/bootstrap-table.min.css" type="text/css"/>{% endif %}
+  {% if include_static %}<script src="/static/app/bootstrap-table.min.js"></script>{% else %}<script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-table/1.11.0/bootstrap-table.min.js"></script>{% endif %}
+  {% if include_static %}<script src="/static/app/bootstrap-table-filter-control.min.js"></script>{% else %}<script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-table/1.11.0/extensions/filter-control/bootstrap-table-filter-control.min.js"></script>{% endif %}
+  {% if include_static %}<script src="/static/app/bootstrap-table-en-US.min.js"></script>{% else %}<script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-table/1.11.0/locale/bootstrap-table-en-US.min.js"></script>{% endif %}
+
   <script type="text/javascript" src="/static/app/typeahead.bundle.min.js"></script>
   <link rel="stylesheet" href="/static/app/bootstrap-tagsinput-0.8.0/src/bootstrap-tagsinput.css" type="text/css"/>
   <link rel="stylesheet" href="/static/app/bootstrap-tagsinput-0.8.0/src/bootstrap-tagsinput-typeahead.css" type="text/css"/>
@@ -19,7 +20,7 @@
   <link rel="stylesheet" href="/static/app/arkalos.css">
   <script type="text/javascript" src="/static/app/ace-builds-1.2.7/src-noconflict/ace.js"></script>
 
-  <script src="https://ajax.googleapis.com/ajax/libs/angularjs/1.6.4/angular.min.js"></script>
+  {% if include_static %}<script src="/static/app/angular.min.js"></script>{% else %}<script src="https://ajax.googleapis.com/ajax/libs/angularjs/1.6.4/angular.min.js"></script>{% endif %}
   <title>Arkalos</title>
 </head>
 <body>

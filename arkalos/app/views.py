@@ -9,6 +9,7 @@ def index(request):
 	is_authenticated = request.user.is_authenticated()
 
 	context = {
+		'include_static': True, 
 		'username' : request.user.username if is_authenticated else '',
 	}
 

@@ -38,7 +38,7 @@ $('#bloodhound_tools_references .typeahead').typeahead({
 });
 */
 //$('.category-container > > input').tagsinput({
-$('#vvvv').tagsinput({
+$('#ta_tools_ref').tagsinput({
 	typeaheadjs:[
 		{
 		  hint: true,
