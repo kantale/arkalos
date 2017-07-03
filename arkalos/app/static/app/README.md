@@ -14,4 +14,9 @@ wget https://cdnjs.cloudflare.com/ajax/libs/bootstrap-table/1.11.0/extensions/fi
 wget https://cdnjs.cloudflare.com/ajax/libs/bootstrap-table/1.11.0/locale/bootstrap-table-en-US.min.js
 
 wget https://ajax.googleapis.com/ajax/libs/angularjs/1.6.4/angular.min.js 
+wget https://code.angularjs.org/1.6.4/angular.min.js.map 
+
+wget https://github.com/twbs/bootstrap/releases/download/v3.3.7/bootstrap-3.3.7-dist.zip
+unzip bootstrap-3.3.7-dist.zip
+
 

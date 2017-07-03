@@ -5,7 +5,10 @@ from django.contrib.auth import authenticate, login, logout
 
 from django.shortcuts import redirect
 
-from app.models import Reference
+from django.core.validators import URLValidator # https://stackoverflow.com/questions/7160737/python-how-to-validate-a-url-in-python-malformed-or-not 
+from django.core.exceptions import ValidationError
+
+from app.models import Reference, Tools
 
 import io
 import six
@@ -22,8 +25,8 @@ pybtex_style = pybtex.plugin.find_plugin('pybtex.style.formatting', 'plain')()
 pybtex_html_backend = pybtex.plugin.find_plugin('pybtex.backends', 'html')()
 pybtex_parser = pybtex.database.input.bibtex.Parser()
 
-
 sep = '||'
+url_validator = URLValidator() # https://stackoverflow.com/questions/7160737/python-how-to-validate-a-url-in-python-malformed-or-not 
 
 class ArkalosException(Exception):
     pass
@@ -91,6 +94,8 @@ def has_data(f):
 def has_field(field_names, errors):
     '''
     Check if field names are present
+    field_name: The field to check
+
     '''
     def decorator(f):
         def wrapper(*args, **kwargs):
@@ -101,6 +106,8 @@ def has_field(field_names, errors):
                         kwargs['error'] = errors(field_name)
                     elif type(errors) is list:
                         kwargs['error'] = errors[field_index]
+                    elif type(errors) is dict:
+                        kwargs['error'] = errors[field_name]
                     elif type(errors) is str:
                         kwargs['error'] = errors
                     else:
@@ -129,6 +136,18 @@ def username_exists(username):
     Checks if a username exists
     '''
     return User.objects.filter(username=username).exists()
+
+def URL_validate(url):
+    '''
+    https://stackoverflow.com/questions/7160737/python-how-to-validate-a-url-in-python-malformed-or-not
+    '''
+
+    try:
+        url_validator(url)
+    except ValidationError as e:
+        return False 
+
+    return True
 
 ###########################################################################
 ##################DATABASE FUNCTIONS#######################################
@@ -347,3 +366,47 @@ def reference_suggestions(request, **kwargs):
 ###############################
 ######END OF REFERENCES########
 ###############################
+
+#################################
+####TOOLS / DATA#################
+#################################
+
+@has_data
+def get_tools(request, **kwargs):
+    '''
+    Serve GET Request for Tools bootstrap table
+    '''
+
+    bindings = {
+        'name' : 'name'
+    }
+
+    return serve_boostrap_table(Tools, bindings, 'name', **kwargs)
+
+@has_data
+@has_field(
+    ['name', 'version', 'url', 'description', 'installation'], 
+    ['Name cannot be empty', 'Version cannot be empty', 'URL cannot be empty', 'Description cannot be empty', 'Installation cannot be empty'])
+@has_error
+def add_tool(request, **kwargs):
+
+    system = kwargs['system']
+    system = simplejson.loads(system)
+    if not len(system):
+        return fail('Please select one or more systems')
+    
+    url = kwargs['url']
+    if not URL_validate(url):
+        return fail('URL: {} does not seem to be valid'.format(url))
+
+    references = kwargs['references']
+    references = simplejson.loads(references)
+    
+
+    #print (kwargs['system'])
+    return success()
+
+########################################
+####END OF TOOLS / DATA#################
+########################################
+

@@ -156,15 +156,61 @@ app.controller('arkalos_Ctrl', function($scope, $http) {
 	$scope.nav_bar_tools_clicked = function() {
 		$scope.initialize_ui();
 		$scope.tools_show = true;
-		$scope.add_tool_show = true;
+	};
+
+	/*
+	* Clicked the "Add" button from the Tools Table
+	*/
+	$scope.tools_table_add_button_clicked = function() {
+
+		if ($scope.username == '') {
+			$scope.tools_error_msg = 'Login to add a Tool/Dataset';
+		}
+		else {
+			$scope.tool_current_version = 'N/A';
+			$scope.tools_created_at = 'N/A';
+			$scope.add_tool_show = true;
+		}
+
+
 	};
 
 	/*
 	* Clicked the "Cancel" button at Tools/Data
 	*/
 	$scope.add_tools_cancel_clicked = function() {
-		alert('sjjj');
 		$scope.add_tool_show = false;
+	};
+
+	/*
+	* Clicked the "Save" button in Add Tools
+	*/
+	$scope.add_tools_save_clicked = function() {
+		
+		var references = [];
+		$.each($('#ta_tools_ref').tagsinput('items'), function(key,value) {references.push(value.value)});
+
+		$scope.ajax(
+			'add_tool/',
+			{
+				"name": $scope.tool_name_model,
+				"version": $scope.tool_version_model,
+				"system": JSON.stringify($('#system-select').val()),
+				"url": $scope.tool_url_model,
+				"description": $scope.tool_description_model,
+				"installation": installation_ace.getValue(),
+				"references": JSON.stringify(references)
+			},
+			function(response) {
+				alert('add tool success');
+			},
+			function(response) {
+				$scope.tools_error_msg = response['error_message'];
+			},
+			function(statusText) {
+				$scope.tools_error_msg = statusText;
+			}
+		);
 	};
 
 	////////////////////////////////////////////////////

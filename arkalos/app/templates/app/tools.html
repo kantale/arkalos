@@ -16,17 +16,18 @@
             <label class="col-sm-2 control-label" for="textinput">Name</label>
             <div class="col-sm-2">
               <input id="tool_name" type="text" placeholder="" class="form-control" name="tool_name" ng-model="tool_name_model" >
-            </div>  
+            </div>
+            <div class="col-sm-2"><h5>Edit: <span class="glyphicon glyphicon-triangle-left"></span><span ng-bind="tool_current_version"></span><span class="glyphicon glyphicon-triangle-right"></span></h5></div>
 
-            <label class="col-sm-2 control-label" for="textinput">Version</label>
+            <label class="col-sm-1 control-label" for="textinput">Version</label>
             <div class="col-sm-2">
               <input id="tool_version" type="text" placeholder="" class="form-control" name="tool_version" ng-model="tool_version_model" >
             </div>  
 
-            <label class="col-sm-2 control-label">System</label>
+            <label class="col-sm-1 control-label">System</label>
 			<div class="col-sm-2">
 
-				<select id="system-select" multiple="multiple">
+				<select id="system-select" multiple="multiple" ng-model="tool_system_model">
 				    <optgroup label="Ubuntu">
 				        <option value="Ubuntu_14_04">14.04</option>
 				        <option value="Ubuntu_16_04">16.04</option>
@@ -43,11 +44,9 @@
 
           <div class="form-group">
           	<label class="col-sm-2 control-label" for="textinput">User</label>
-          	<div class="col-sm-2"><h5><span ng-bind="tools_username"></span></h5></div>
-          	<label class="col-sm-2 control-label" for="textinput">Created At</label>
+          	<div class="col-sm-2"><h5><span ng-bind="username"></span></h5></div>
+          	<label class="col-sm-2 col-sm-offset-1 control-label" for="textinput">Created At</label>
           	<div class="col-sm-2"><h5><span ng-bind="tools_created_at"></span></h5></div>
-          	<label class="col-sm-2 control-label" for="textinput">Version</label>
-          	<div class="col-sm-2"><h5><span class="glyphicon glyphicon-triangle-left"></span> 7 <span class="glyphicon glyphicon-triangle-right"></span></h5></div>
           </div>
 
           <div class="form-group">
@@ -100,15 +99,16 @@
 		<div class="col-md-12" id="tools_table_div" >
 		  <div id="tools_table_toolbar">
 		    <div class="form-inline" role="form">
-		      <button class="btn btn-default" ng-click="tools_table_add_button_clicked()">add Reference</button>
+		      <button class="btn btn-default" ng-click="tools_table_add_button_clicked()">add Tools/Data</button>
 		    </div>
 		  </div>
 
 		  <table id="tools_table" data-toggle="table" data-url="/get_tools/" data-filter-control="true" data-pagination="true" data-side-pagination="server" data-filter-show-clear="true" data-toolbar="#tools_table_toolbar">
     	    <thead>
     	      <tr>
-    	        <th data-field="id" data-filter-control="input" data-width="10%">ID</th>
-    	        <th data-field="content" data-filter-control="input" data-width="90%">Content</th>
+    	        <th data-field="name" data-filter-control="input" data-width="10%">Name</th>
+    	        <th data-field="url" data-filter-control="input" data-width="10%">Link</th>
+    	        <th data-field="description" data-filter-control="input" data-width="20%">Description</th>
     	      </tr>
     	    </thead>
     	  </table>
