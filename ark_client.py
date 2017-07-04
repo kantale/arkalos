@@ -36,6 +36,7 @@ def execute_thread(q, cmd):
 	execute_generator = execute(cmd)
 
 	for line in execute_generator:
+		#print ('#### ' + line)
 		q.put(line)
 
 	q.put('ARKALOS||FINISHED')
@@ -79,7 +80,7 @@ def process_worker(q_input, q_output, my_id,):
 								last_put = "WORKING EMPTY"
 						else:
 							line = worker_queue.get()
-							if not line == 'ARKALOS||FINISHED':
+							if line == 'ARKALOS||FINISHED':
 								q_output.put(line)
 								last_put = line
 								break
@@ -117,7 +118,7 @@ def main_process(q_input, q_output):
 
 	pool = start_pool()
 	next_idle = None
-	state = {}
+	#state = {} # Not used 
 	messages = {}
 
 	while True:
@@ -132,16 +133,17 @@ def main_process(q_input, q_output):
 				if p_message == 'IDLE':
 					next_idle = p_index
 				elif p_message == 'WORKING EMPTY':
-					state[p_index] = 'WORKING EMPTY'
-				elif p_message == 'ARKALOS||FINISHED':
-					state[p_index] = 'ARKALOS||FINISHED'
-				elif 'ARKALOS||OUTPUT||' in p_message:
+					#state[p_index] = 'WORKING EMPTY'
+					pass
+				elif 'ARKALOS||OUTPUT||' in p_message or p_message == 'ARKALOS||FINISHED':
 					p_message = p_message.replace('ARKALOS||OUTPUT||', '')
 
 					if not p_index in messages:
 						messages[p_index] = ''
 
 					messages[p_index] += p_message
+				else:
+					raise Exception('This should not happen')
 
 
 
@@ -165,21 +167,32 @@ def main_process(q_input, q_output):
 				if not submit_process in messages:
 					q_output.put('ARKALOS||NONE')
 				else:
-					q_output.put(messages[submit_process])
+					this_messages = messages[submit_process]
+					q_output.put(this_messages)
+					if 'ARKALOS||FINISHED' in this_messages:
+						pass
 					messages[submit_process] = ''
 			else:
 				raise Exception('Unknown Command : {}'.format(message['action']))
 
 		time.sleep(1)
 
-def test_main_process():
-	q_input = process_Queue()
-	q_output = process_Queue()
+def main_process_get_output(q_input, q_output, idle_process):
+	q_input.put({'ACTION': 'GET OUTPUT', 'p_index': idle_process})
 
-	p = Process(target=main_process, args=(q_input, q_output))
-	p.start()
+	while True:
+		if q_output.empty():
+			pass # Do nothing
+		else:
+			message = q_output.get()
+			print ('MAIN PROCESS RECEIVED: ', message)
+			break
 
-	time.sleep(1)
+		time.sleep(1)
+
+	return message
+
+def main_process_get_idle_process(q_input, q_output):
 	q_input.put({'ACTION': 'GET EMPTY'})
 
 	while True:
@@ -193,38 +206,37 @@ def test_main_process():
 
 		time.sleep(1)
 
-	print ("HERE 1")
-	q_input.put({'ACTION': 'SUBMIT', 'p_index': idle_process, 'TASK': 'ls -l'})
+	return idle_process
 
-	q_input.put({'ACTION': 'GET OUTPUT', 'p_index': idle_process})
+def main_process_submit(q_input, idle_process, task):
+	q_input.put({'ACTION': 'SUBMIT', 'p_index': idle_process, 'TASK': task})
+
+def main_process_run_task(q_input, q_output, task):
+	idle_process = main_process_get_idle_process(q_input, q_output)
+	print ('IDLE PROCESS:', idle_process)
+	main_process_submit(q_input, idle_process, task)
 
 	while True:
-		if q_output.empty():
-			pass # Do nothing
-		else:
-			message = q_output.get()
-			print ('MAIN PROCESS RECEIVED: ', message)
+		output = main_process_get_output(q_input, q_output, idle_process)
+		print ('IDLE PROCESS: {} OUTPUT: {}'.format(idle_process, output))
+		if 'ARKALOS||FINISHED' in output.split('\n'):
 			break
 
 		time.sleep(1)
 
-	print ("HERE 2")
+	print ('IDLE PROCESS: {} FINISHED '.format(idle_process))
 
-	time.sleep(3)
 
-	q_input.put({'ACTION': 'GET OUTPUT', 'p_index': idle_process})
+def test_main_process():
+	q_input = process_Queue()
+	q_output = process_Queue()
 
-	while True:
-		if q_output.empty():
-			pass # Do nothing
-		else:
-			message = q_output.get()
-			print ('MAIN PROCESS RECEIVED: ', message)
-			break
+	p = Process(target=main_process, args=(q_input, q_output))
+	p.start()
 
-		time.sleep(1)
+	time.sleep(1)
+	main_process_run_task(q_input, q_output, 'ls -l')
 
-	print ("HERE 3")
 
 
 class S(BaseHTTPRequestHandler):
@@ -251,7 +263,6 @@ class S(BaseHTTPRequestHandler):
 		except Exception as e:
 			print ('Could not parse JSON DATA..')
 			
-
 
 		self._set_headers()
 		self.wfile.write(b"<html><body><h1>POST!</h1></body></html>")
