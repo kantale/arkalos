@@ -3,9 +3,15 @@ An effort to build a proccess pool that tests ARKALOS TOOLS/DATA
 VERY EXPERIMENTAL!
 '''
 
+import os
+import pty
+import sys
 import json
 import time
 import shlex
+import traceback
+
+from select import select
 
 from multiprocessing import Queue as process_Queue
 from multiprocessing import Process
@@ -18,26 +24,88 @@ import subprocess
 #from BaseHTTPServer import BaseHTTPRequestHandler, HTTPServer
 from http.server import BaseHTTPRequestHandler, HTTPServer
 
+def execute2(cmd):
+    '''
+    Adapted from
+    https://stackoverflow.com/a/31968411/5626738
+    '''
+
+    stdout = ''
+    stderr = ''
+    command = shlex.split(cmd)
+    masters, slaves = zip(pty.openpty(), pty.openpty())
+    p = subprocess.Popen(command, stdin=slaves[0], stdout=slaves[0], stderr=slaves[1])
+    for fd in slaves: 
+        os.close(fd)
+
+    readable = { masters[0]: sys.stdout, masters[1]: sys.stderr }
+    try:
+        print (' ######### REAL-TIME ######### ')
+        while readable:
+            for fd in select(readable, [], [])[0]:
+            
+                try:
+                    data = os.read(fd, 1024)
+                except OSError as e:
+                    if e.errno != errno.EIO: raise
+                    del readable[fd]
+                finally:
+                    if not data: 
+                        del readable[fd]
+                    else:
+                        new_data = data.decode('ascii')
+                        if fd == masters[0]: 
+                            stdout += new_data
+                            yield 0, new_data
+                        else: 
+                            stderr += new_data
+                            yield 1, new_data
+
+                        #readable[fd].write(str(data))
+                        readable[fd].flush()
+    except Exception as e:
+        print (traceback.print_exc(file=sys.stdout))
+    finally:
+        p.wait()
+        for fd in masters: 
+            os.close(fd)
+        #print ('')
+        #print (' ########## RESULTS ########## ')
+        #print ('STDOUT:')
+        #print (stdout)
+        #print ('STDERR:')
+        #print (stderr)
+
+
 def execute(cmd):
 	'''
 	https://stackoverflow.com/questions/4417546/constantly-print-subprocess-output-while-process-is-running
 	'''
 
 	args = shlex.split(cmd)
-	popen = subprocess.Popen(args, stdout=subprocess.PIPE, universal_newlines=True)
+#	popen = subprocess.Popen(args, stdout=subprocess.PIPE, universal_newlines=True)
+	
+	with subprocess.Popen(args, stdout=subprocess.PIPE, universal_newlines=True) as popen:
+		for line in popen.stdout:
+			yield line
 
-	for line in popen.stdout:
-		yield line
-
-	popen.stdout.close()
+		popen.stdout.close()
 
 def execute_thread(q, cmd):
 	
-	execute_generator = execute(cmd)
-
-	for line in execute_generator:
+	for std_kind, line in execute2(cmd):
 		#print ('#### ' + line)
+
+		if std_kind == 0:
+			pass #STDOUT TODO
+		elif std_kind == 1:
+			pass #STDERR TOSO 
+		else:
+			raise Exception('This should never happen')
+
+
 		q.put(line)
+		print ('EXECUTING THREAD. JUST ADDED LINE: {}'.format(line))
 
 	q.put('ARKALOS||FINISHED')
 
@@ -54,14 +122,13 @@ def process_worker(q_input, q_output, my_id,):
 	'''
 
 	t = None
-	last_put = None
+	busy = False
+	current_data = ''
+
 	while True:
 		# Is the queue empty?
 		if q_input.empty():
-			print('Worker: {} . EMPTY QUEUE'.format(my_id))
-			if not last_put == 'IDLE':
-				q_output.put('IDLE')
-				last_put = 'IDLE'
+			pass # DO NOTHING
 		else:
 			message = q_input.get()
 			if 'ACTION' in message:
@@ -72,177 +139,279 @@ def process_worker(q_input, q_output, my_id,):
 					print ("WORKER: {} STARTING TASK: {}".format(my_id, task))
 					t = Thread(target=execute_thread, args=(worker_queue, task))
 					t.start()
+					busy = True
+				elif action == 'AMIBUSY?':
+					q_output.put(busy)
+				elif action == 'GET DATA':
+					q_output.put(current_data)
+					print ('WORKER {} . RECEIVED "GET DATA". SEND DATA {}'.format(my_id, current_data))
+					current_data = ''
+				else:
+					raise Exception('DO NOT KNOW WHAT TO DO WITH ACTION: {}'.format(action))
+			else:
+				raise Exception('COULD NOT FIND "ACTION" in message')
 
-					while True:
-						if worker_queue.empty():
-							if not last_put == 'WORKING EMPTY':
-								q_output.put("WORKING EMPTY")
-								last_put = "WORKING EMPTY"
-						else:
-							line = worker_queue.get()
-							if line == 'ARKALOS||FINISHED':
-								q_output.put(line)
-								last_put = line
-								break
-							else:
-								q_output.put('ARKALOS||OUTPUT||' + line)
-								last_put = line
+		if busy:
+			# COLLECT OUTPUT!
+			if worker_queue.empty():
+				print ('WORKER {} . EMPTY OUTPUT QUEUE'.format(my_id))
+				pass # DO NOTHING. NO OUTPUT..
+			else:
+				worker_size = worker_queue.qsize()
+				print ('WORKER {} . NOT EMPTY QUEUE. SIZE: {}'.format(my_id, worker_size))
+				last_put = False
+				for i in range(worker_size):
+					line = worker_queue.get()
+					if line == 'ARKALOS||FINISHED':
+						current_data += line
+						last_put = True
+					else:
+						current_data += 'ARKALOS||OUTPUT||' + line
 
-						time.sleep(1)
-
+			
+				if last_put:
+					busy = False
 					t = None
+					worker_queue = None
 
-
-			#print('Worker: {} . NOT EMPTY QUEUE'.format(my_id))
 		time.sleep(1)
+						
+class ArkalosWorkers:
+	def __init__(self, num=3):
+
+		self.num = num
+
+		# Communication Queues
+		self.q_input = process_Queue()  
+		self.q_output = process_Queue() 
+
+		self.p = Process(target=self.main_process, args=(self.q_input, self.q_output))
+		self.p.start()
 
 
-def start_pool(num=3):
-	#Start the processes
-	pool = []
-	for i in range(num):
-		#parent_conn, child_conn = Pipe()
-		q_input = process_Queue()
-		q_output = process_Queue()
-		p = Process(target=process_worker, args=(q_input, q_output, i))
-		p.daemon = False
+	def start_pool(self):
+		#Start the processes
+		pool = []
+		for i in range(self.num):
+			#parent_conn, child_conn = Pipe()
+			q_input = process_Queue()
+			q_output = process_Queue()
+			p = Process(target=process_worker, args=(q_input, q_output, i))
+			p.daemon = False
 
-		p.start()
-		#p.join()
-		pool.append({'p': p, 'q_input': q_input, 'q_output': q_output})
+			p.start()
+			#p.join()
+			pool.append({'p': p, 'q_input': q_input, 'q_output': q_output, 'i': i})
 
-	print ('POOLS STARTED')
-	return pool
+		print ('POOLS STARTED')
+		return pool
 
-def main_process(q_input, q_output):
+	def ask_if_idle(self,p):
+		p['q_input'].put({'ACTION':'AMIBUSY?'})
 
-	pool = start_pool()
-	next_idle = None
-	#state = {} # Not used 
-	messages = {}
+		while True:
+			if not p['q_output'].empty():
+				busy = p['q_output'].get()
+				break
 
-	while True:
+			time.sleep(1)
+
+		return not busy # not busy means idle
+
+
+	def find_one_idle(self, registered, pool):
 
 		for p_index, p in enumerate(pool):
-			if p['q_output'].empty():
-				pass # Do nothing 
+			if registered[p_index]:
+				continue
 
-			else:
-				p_message = p['q_output'].get()
+			is_idle = self.ask_if_idle(p)
+			if is_idle:
+				return p_index
 
-				if p_message == 'IDLE':
-					next_idle = p_index
-				elif p_message == 'WORKING EMPTY':
-					#state[p_index] = 'WORKING EMPTY'
-					pass
-				elif 'ARKALOS||OUTPUT||' in p_message or p_message == 'ARKALOS||FINISHED':
-					p_message = p_message.replace('ARKALOS||OUTPUT||', '')
+		return None
 
-					if not p_index in messages:
-						messages[p_index] = ''
+	def get_output_from_worker(self, p):
+		p['q_input'].put({'ACTION':'GET DATA'})
 
-					messages[p_index] += p_message
-				else:
-					raise Exception('This should not happen')
+		while True:
+			if not p['q_output'].empty():
+				ret = p['q_output'].get()
+				break
 
+			time.sleep(1)
 
+		if ret:
+			print ('COLLECTED OUTPUT FROM WORKER: {} --> {}'.format(p['i'], ret))
+		return ret
 
-		if q_input.empty():
-			pass # Do nothing
-		else:
-			message = q_input.get()
-			if message['ACTION'] == 'GET EMPTY':
+	def main_process(self, q_input, q_output):
+
+		pool = self.start_pool()
+		next_idle = None
+		#state = {} # Not used 
+		messages = {i:'' for i in range(len(pool))}
+		registered = {i:False for i in range(len(pool))} # Nothing is registered
+
+		time.sleep(2)
+
+		try:
+			while True:
+
+				#Check if there is an idle worker
 				if next_idle is None:
-					q_output.put('NONE')
+					# Find next idle
+					next_idle = self.find_one_idle(registered, pool)
+					print ('FOUND NEW NEXT IDLE: {}'.format(next_idle))
+
+				#Get output from registered
+				for p_index, p in enumerate(pool):
+					if registered[p_index]:
+						#print ('111:', messages[p_index])
+						data_from_worker = self.get_output_from_worker(p)
+						#print ('222:', data_from_worker)
+						messages[p_index] += data_from_worker
+
+				#Check input queue for commands 
+				if q_input.empty():
+					time.sleep(1)
+					continue
+
+				# Queue is not empty
+				message = q_input.get()
+				if message['ACTION'] == 'GET IDLE':
+					print ('MAIN PROCESS RECEIVED "GET IDLE"')
+					if next_idle is None:
+						# We could not find an idle worker
+						q_output.put('NONE')
+						next_idle_ret = 'NONE'
+					else:
+						# We found and return an idle worker
+						assert not registered[next_idle] # Since it is idle it cannot be registered
+
+						#Register the worker
+						registered[next_idle] = True
+
+						# Send it
+						q_output.put(str(next_idle))
+						next_idle_ret = next_idle
+
+						#Force next loop to find a new next_idle
+						next_idle = None
+
+	
+						print ('MAIN PROCESS RETURN NEXT IDLE: {}'.format(next_idle_ret))
+
+				elif message['ACTION'] == 'SUBMIT':
+						submit_process = int(message['p_index'])
+						assert registered[submit_process] # Since we returned it then it is registered
+
+						pool[submit_process]['q_input'].put({
+							'ACTION': 'START',
+							'TASK': message['TASK']
+							})
+
+				elif message['ACTION'] == 'GET OUTPUT':
+						submit_process = int(message['p_index'])
+						assert registered[submit_process]
+
+						this_messages = messages[submit_process]
+						q_output.put(this_messages)
+						messages[submit_process] = ''
+
+						if 'ARKALOS||FINISHED' in this_messages:
+							registered[submit_process] = False
+
+				elif message['ACTION'] == 'RELEASE':
+						submit_process = int(message['p_index'])
+						registered[submit_process] = False
 				else:
-					q_output.put(str(next_idle))
-			elif message['ACTION'] == 'SUBMIT':
-				submit_process = int(message['p_index'])
-				pool[submit_process]['q_input'].put({
-					'ACTION': 'START',
-					'TASK': message['TASK']
-					})
-			elif message['ACTION'] == 'GET OUTPUT':
-				submit_process = int(message['p_index'])
-				if not submit_process in messages:
-					q_output.put('ARKALOS||NONE')
-				else:
-					this_messages = messages[submit_process]
-					q_output.put(this_messages)
-					if 'ARKALOS||FINISHED' in this_messages:
-						pass
-					messages[submit_process] = ''
+					raise Exception('Unknown Command : {}'.format(message['ACTION']))
+
+				#print ('MAIN PROCESS, END OF CHECK Q_INPUT FOR MESSAGES')
+				time.sleep(1)
+		except Exception as e:
+			print ('Exception in MAIN PROCESS: {}'.format(str(e)))
+			traceback.print_exc(file=sys.stdout)
+
+
+	def get_idle_process(self,):
+		self.q_input.put({'ACTION': 'GET IDLE'})
+
+		while True:
+			if self.q_output.empty():
+				#print ('GET EMPTY REQUEST SENT. STILL EMPTY QUEUE')
+				pass # Do nonthing
 			else:
-				raise Exception('Unknown Command : {}'.format(message['action']))
+				message = self.q_output.get()
+				#print ('MAIN PROCESSED RECEIVED: ', message)
+				if message == 'NONE':
+					idle_process = 'NONE'
+				else:
+					idle_process = int(message)
+				break
 
-		time.sleep(1)
+			time.sleep(1)
 
-def main_process_get_output(q_input, q_output, idle_process):
-	q_input.put({'ACTION': 'GET OUTPUT', 'p_index': idle_process})
+		return idle_process
 
-	while True:
-		if q_output.empty():
-			pass # Do nothing
-		else:
-			message = q_output.get()
-			print ('MAIN PROCESS RECEIVED: ', message)
-			break
-
-		time.sleep(1)
-
-	return message
-
-def main_process_get_idle_process(q_input, q_output):
-	q_input.put({'ACTION': 'GET EMPTY'})
-
-	while True:
-		if q_output.empty():
-			pass # Do nonthing
-		else:
-			message = q_output.get()
-			print ('MAIN PROCESSED RECEIVED: ', message)
-			idle_process = int(message)
-			break
-
-		time.sleep(1)
-
-	return idle_process
-
-def main_process_submit(q_input, idle_process, task):
-	q_input.put({'ACTION': 'SUBMIT', 'p_index': idle_process, 'TASK': task})
-
-def main_process_run_task(q_input, q_output, task):
-	idle_process = main_process_get_idle_process(q_input, q_output)
-	print ('IDLE PROCESS:', idle_process)
-	main_process_submit(q_input, idle_process, task)
-
-	while True:
-		output = main_process_get_output(q_input, q_output, idle_process)
-		print ('IDLE PROCESS: {} OUTPUT: {}'.format(idle_process, output))
-		if 'ARKALOS||FINISHED' in output.split('\n'):
-			break
-
-		time.sleep(1)
-
-	print ('IDLE PROCESS: {} FINISHED '.format(idle_process))
+	def submit(self, idle_process, task):
+		self.q_input.put({'ACTION': 'SUBMIT', 'p_index': idle_process, 'TASK': task})
 
 
-def test_main_process():
-	q_input = process_Queue()
-	q_output = process_Queue()
+	def get_output(self, idle_process):
+		self.q_input.put({'ACTION': 'GET OUTPUT', 'p_index': idle_process})
 
-	p = Process(target=main_process, args=(q_input, q_output))
-	p.start()
+		while True:
+			if self.q_output.empty():
+				pass # Do nothing
+			else:
+				message = self.q_output.get()
+				#print ('MAIN PROCESS RECEIVED: ', message)
+				break
 
-	time.sleep(1)
-	main_process_run_task(q_input, q_output, 'ls -l')
+			time.sleep(1)
+
+		return message
 
 
+
+#def main_process_run_task(q_input, q_output, task):
+#	idle_process = main_process_get_idle_process(q_input, q_output)
+#	print ('IDLE PROCESS:', idle_process)
+#	main_process_submit(q_input, idle_process, task)
+#
+#	while True:
+#		output = main_process_get_output(q_input, q_output, idle_process)
+#		print ('IDLE PROCESS: {} OUTPUT: {}'.format(idle_process, output))
+#		if 'ARKALOS||FINISHED' in output.split('\n'):
+#			break
+#
+#		time.sleep(1)
+#
+#	print ('IDLE PROCESS: {} FINISHED '.format(idle_process))
+
+
+#def test_main_process():
+#	q_input = process_Queue()
+#	q_output = process_Queue()
+#
+#	p = Process(target=main_process, args=(q_input, q_output))
+#	p.start()
+#
+#	time.sleep(1)
+#	main_process_run_task(q_input, q_output, 'ls -l')
+
+### For testing S class
+#class ArkalosWorkers:
+#	pass
 
 class S(BaseHTTPRequestHandler):
 	'''
 	https://gist.github.com/bradmontgomery/2219997
 	'''
+
+	workers = ArkalosWorkers()
 
 	def _set_headers(self):
 		self.send_response(200)
@@ -252,6 +421,10 @@ class S(BaseHTTPRequestHandler):
 	def do_POST(self):
 		'''
 		TODO: check origin
+		r = requests.post("http://127.0.0.1:8080", data=json.dumps({'action': 'GET EMPTY'}))0
+		r.json()['p_index']
+
+
 		'''
 		
 		content_length = int(self.headers['Content-Length']) # <--- Gets the size of data
@@ -262,10 +435,37 @@ class S(BaseHTTPRequestHandler):
 			data = json.loads(post_data)
 		except Exception as e:
 			print ('Could not parse JSON DATA..')
-			
+		
+		if not 'action' in data:
+			raise Exception('Unknown JSON DATA')
+
+		action = data['action']
+		if action == 'GET IDLE':
+			print ('HTTP RECEIVED ACTION GET IDLE')
+			idle_process = self.workers.get_idle_process()
+			print ('HTTP GOT IDLE PROCESS: {}'.format(idle_process))
+			ret_data = {'p_index': idle_process}
+		elif action == 'SUBMIT':
+			task = data['task']
+			p_index = data['p_index']
+			self.workers.submit(p_index, task)
+			ret_data = {'p_index': p_index, 'response': 'SUBMITTED'}
+		elif action == 'GET OUTPUT':
+			p_index = data['p_index']
+			message = self.workers.get_output(p_index)
+			ret_data = {
+				'p_index': p_index, 
+				'output': message,
+				'last': 'ARKALOS||FINISHED' in message,
+			}
+
+		else:
+			raise Exception('Unknown action: {}'.format(action))
+
+		ret_bytes = str.encode(json.dumps(ret_data))
 
 		self._set_headers()
-		self.wfile.write(b"<html><body><h1>POST!</h1></body></html>")
+		self.wfile.write(ret_bytes)
 
 def run(server_class=HTTPServer, handler_class=S, port=8080):
 	server_address = ('', port)
@@ -274,11 +474,20 @@ def run(server_class=HTTPServer, handler_class=S, port=8080):
 	httpd.serve_forever()
 
 if __name__ == '__main__':
-#	run()
+	run()
 
 	#start_pool()
 
 #	for i in execute('ls -l'):
 #		print ('Recieved: {}'.format(i))
 
-	test_main_process()
+#	test_main_process()
+#	a = ArkalosWorkers()
+#	i = a.get_idle_process()
+#	print ('#### ', i)
+
+
+#	for l in execute2('python /Users/alexandroskanterakis/github/arkalos/test_2.py 20 p1'):
+#		print (l)
+#
+#	pass
