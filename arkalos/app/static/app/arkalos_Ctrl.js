@@ -1,5 +1,5 @@
 
-app.controller('arkalos_Ctrl', function($scope, $http) {
+app.controller('arkalos_Ctrl', function($scope, $http, $timeout) {
 
 	/*
 	* Init function called by angular
@@ -27,6 +27,7 @@ app.controller('arkalos_Ctrl', function($scope, $http) {
 		$http({
 			headers: {
 				"Content-Type": 'application/json',
+				"Access-Control-Allow-Origin": "*", // TODO : REMOVE THIS!
 				//"X-CSRFToken" : getCookie('csrftoken'),
 				"X-CSRFToken" : window.CSRF_TOKEN,
 			},
@@ -182,10 +183,143 @@ app.controller('arkalos_Ctrl', function($scope, $http) {
 		$scope.add_tool_show = false;
 	};
 
+	// ###########################################
+	// ########### TALK WITH DOCKER SERVER #######
+	// ###########################################
+
+	/*
+	* DOCKER GET IDLE
+	*/
+	$scope.docker_get_idle = function(docker_none_idle, docker_found_idle, docker_get_output, none_counter, commands) {
+		$scope.ajax(
+			'http://139.91.70.73:8080/',
+			{
+				'action': 'GET IDLE'
+			},
+			function(response) {
+				var p_index = response['p_index']
+				if (p_index == 'NONE') {
+					if (none_counter>3) {
+						console.log('FOUND MORE THAN 3 NONE. QUITING');
+						docker_none_idle(); 
+					}
+					else {
+						console.log('GET IDLE NONE COUNT: ' + none_counter + ' RETRYING..' );
+						$scope.docker_get_idle(docker_none_idle, docker_found_idle, docker_get_output, none_counter+1, commands);
+					}
+				}
+				else {
+					docker_found_idle(docker_get_output, p_index, commands);
+				}
+			},
+			function(response) {
+				console.log('THIS SHOULD NEVER HAPPEN 384');
+			},
+			function(statusText) {
+				console.log('COULD NOT REACH DOCKER SERVER 1 : ' + statusText );
+			}
+		);
+	};
+
+	/*
+	* DOCKER SUBMIT COMMANDS
+	*/
+	$scope.docker_found_idle = function(docker_get_output, p_index, commands) {
+		$scope.ajax(
+			'http://139.91.70.73:8080/',
+			{
+				'action': 'SUBMIT',
+				'p_index': p_index,
+				'task': commands
+			},
+			function(response) {
+				if (response['response'] == 'SUBMITTED') {
+					docker_get_output(p_index)
+				}
+				else {
+					console.log('THIS SOULD NEVER HAPPEN 444');
+				}
+			},
+			function(response) {
+				console.log('THIS SHOULD NEVER HAPPEN 188');
+			},
+			function(statusText) {
+				console.log('COULD NOT REACH DOCKER SERVER 2 : ' + statusText);
+			}
+		);
+	};
+
+	/*
+	* DOCKER GET OUTPUT
+	*/
+	$scope.docker_get_output = function(p_index) {
+		$scope.ajax(
+			'http://139.91.70.73:8080/',
+			{
+				'action': 'GET OUTPUT',
+				'p_index': p_index
+			},
+			function(response) {
+				var output = response['output'];
+				var last = response['last'];
+				console.log('RECEIVED OUTPUT:');
+				console.log(output);
+				if (last) {
+					//FINISHED (set verified??)
+				}
+				else {
+					console.log('NOT FINISHED.. WAITING MORE OUTPUT');
+					//WAIT 1.5 SEC
+					$timeout(
+						function() {$scope.docker_get_output(p_index)},
+						1500
+					);
+
+				}
+			},
+			function(response) {
+				console.log('THIS SHOULD NEVER HAPPEN 782');
+			},
+			function(statusText) {
+				console.log('COUND NOT REACH DOCKER SERVER 3 : ' + statusText);
+			}
+		);
+	};
+
+	/*
+	* WRAPPER FUNCTION. USE THIS
+	*/
+	$scope.do_docker = function(commands) {
+
+		$scope.docker_get_idle(
+			function() {console.log('QUITING..');}, // docker_none_idle, 
+			$scope.docker_found_idle, //docker_found_idle, 
+			$scope.docker_get_output, //docker_get_output, 
+			0, //none_counter, 
+			commands);
+
+	};
+	
+
+	// ###########################################
+	// #### END OF TALK WITH DOCKER SERVER #######
+	// ###########################################
+
+
+	/*
+	* ARKALOS WORKER SERVER: http://139.91.70.73:8080/ 
+	*/
+	$scope.add_tools_save_clicked = function() {
+		var install_commands = installation_ace.getValue()
+		console.log(install_commands);
+
+		$scope.do_docker(install_commands);
+	};
+
 	/*
 	* Clicked the "Save" button in Add Tools
 	*/
-	$scope.add_tools_save_clicked = function() {
+	$scope.add_tools_save_clicked_old = function() {
 		
 		var references = [];
 		$.each($('#ta_tools_ref').tagsinput('items'), function(key,value) {references.push(value.value)});

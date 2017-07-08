@@ -8,6 +8,7 @@ import pty
 import sys
 import json
 import time
+import errno
 import shlex
 import traceback
 
@@ -23,6 +24,8 @@ import subprocess
 
 #from BaseHTTPServer import BaseHTTPRequestHandler, HTTPServer
 from http.server import BaseHTTPRequestHandler, HTTPServer
+
+from ark_docker import build_image_script
 
 def execute2(cmd):
     '''
@@ -47,7 +50,8 @@ def execute2(cmd):
                 try:
                     data = os.read(fd, 1024)
                 except OSError as e:
-                    if e.errno != errno.EIO: raise
+                    if e.errno != errno.EIO: 
+                    	raise
                     del readable[fd]
                 finally:
                     if not data: 
@@ -61,8 +65,9 @@ def execute2(cmd):
                             stderr += new_data
                             yield 1, new_data
 
-                        #readable[fd].write(str(data))
-                        readable[fd].flush()
+                        if fd in readable:
+                            readable[fd].write(str(data))
+                            readable[fd].flush()
     except Exception as e:
         print (traceback.print_exc(file=sys.stdout))
     finally:
@@ -82,6 +87,7 @@ def execute(cmd):
 	https://stackoverflow.com/questions/4417546/constantly-print-subprocess-output-while-process-is-running
 	'''
 
+
 	args = shlex.split(cmd)
 #	popen = subprocess.Popen(args, stdout=subprocess.PIPE, universal_newlines=True)
 	
@@ -93,7 +99,9 @@ def execute(cmd):
 
 def execute_thread(q, cmd):
 	
-	for std_kind, line in execute2(cmd):
+	image_script = build_image_script(cmd)
+
+	for std_kind, line in execute2(image_script):
 		#print ('#### ' + line)
 
 		if std_kind == 0:
@@ -105,7 +113,7 @@ def execute_thread(q, cmd):
 
 
 		q.put(line)
-		print ('EXECUTING THREAD. JUST ADDED LINE: {}'.format(line))
+		print ('EXECUTING THREAD. JUST ADDED LINE: {}:{}'.format({0:'STDOUT', 1:'STDERR'}[std_kind], line))
 
 	q.put('ARKALOS||FINISHED')
 
@@ -416,6 +424,22 @@ class S(BaseHTTPRequestHandler):
 	def _set_headers(self):
 		self.send_response(200)
 		self.send_header('Content-type', 'text/html')
+		self.send_header('Access-Control-Allow-Origin', '*')
+		self.end_headers()
+
+	def do_OPTIONS(self):
+		'''
+		https://stackoverflow.com/questions/16583827/cors-with-python-basehttpserver-501-unsupported-method-options-in-chrome
+		TODO: ALLOW FROM A GIVEN ORIGIN
+		'''
+
+		self.send_response(200, "ok")
+		self.send_header('Access-Control-Allow-Origin', '*')
+		self.send_header('Access-Control-Allow-Methods', 'POST, GET, OPTIONS') # GET ??
+		#self.send_header("Access-Control-Allow-Headers", "X-Requested-With")
+		self.send_header("Access-Control-Allow-Headers", "Content-Type")
+		self.send_header("Access-Control-Allow-Headers", "x-csrftoken")
+		self.send_header("Access-Control-Allow-Headers", "access-control-allow-origin")
 		self.end_headers()
 
 	def do_POST(self):
@@ -426,7 +450,11 @@ class S(BaseHTTPRequestHandler):
 
 
 		'''
-		
+
+		#Check origin
+		host = self.headers.get('Host')
+		print ('### HOST:', host)
+
 		content_length = int(self.headers['Content-Length']) # <--- Gets the size of data
 		post_data = self.rfile.read(content_length) # <--- Gets the data itself
 		print (post_data)
@@ -444,16 +472,24 @@ class S(BaseHTTPRequestHandler):
 			print ('HTTP RECEIVED ACTION GET IDLE')
 			idle_process = self.workers.get_idle_process()
 			print ('HTTP GOT IDLE PROCESS: {}'.format(idle_process))
-			ret_data = {'p_index': idle_process}
+			ret_data = {
+				'success': True,
+				'p_index': idle_process
+			}
 		elif action == 'SUBMIT':
 			task = data['task']
 			p_index = data['p_index']
 			self.workers.submit(p_index, task)
-			ret_data = {'p_index': p_index, 'response': 'SUBMITTED'}
+			ret_data = {
+				'success': True,
+				'p_index': p_index, 
+				'response': 'SUBMITTED'
+			}
 		elif action == 'GET OUTPUT':
 			p_index = data['p_index']
 			message = self.workers.get_output(p_index)
 			ret_data = {
+				'success': True,
 				'p_index': p_index, 
 				'output': message,
 				'last': 'ARKALOS||FINISHED' in message,
