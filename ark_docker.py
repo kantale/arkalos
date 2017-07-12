@@ -1,6 +1,7 @@
 
 import uuid
 
+# https://hub.docker.com/_/ubuntu/ 
 base_images = {
 "Ubuntu_14_04" : "ubuntu:14.04",
 }

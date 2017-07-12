@@ -3,9 +3,19 @@
 $(document).ready(function() {
 	$('#system-select').multiselect();
 
+	//Also edit CSS 
 	window.installation_ace = ace.edit("installation_ace");
     window.installation_ace.setTheme("ace/theme/github");
     window.installation_ace.getSession().setMode("ace/mode/sh");
+
+	window.validate_installation_ace = ace.edit("validate_installation_ace");
+    window.validate_installation_ace.setTheme("ace/theme/github");
+    window.validate_installation_ace.getSession().setMode("ace/mode/sh");
+
+	window.log_ace = ace.edit("log_ace");
+    window.log_ace.setTheme("ace/theme/github");
+    window.log_ace.getSession().setMode("ace/mode/text");
+    window.log_ace.setReadOnly(true);
 
 
 // constructs the suggestion engine

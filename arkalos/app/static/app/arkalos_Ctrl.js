@@ -146,51 +146,24 @@ app.controller('arkalos_Ctrl', function($scope, $http, $timeout) {
 	/////END OF REGISTRATION///////////////////
 	///////////////////////////////////////////
 
-
-	/////////////////////////////////////////////////////
-	/////////////TOOLS / DATA ///////////////////////////
-	/////////////////////////////////////////////////////
-
-	/*
-	* Clicked the "Tools/Data" from navbar
-	*/
-	$scope.nav_bar_tools_clicked = function() {
-		$scope.initialize_ui();
-		$scope.tools_show = true;
-	};
-
-	/*
-	* Clicked the "Add" button from the Tools Table
-	*/
-	$scope.tools_table_add_button_clicked = function() {
-
-		if ($scope.username == '') {
-			$scope.tools_error_msg = 'Login to add a Tool/Dataset';
-		}
-		else {
-			$scope.tool_current_version = 'N/A';
-			$scope.tools_created_at = 'N/A';
-			$scope.add_tool_show = true;
-		}
-
-
-	};
-
-	/*
-	* Clicked the "Cancel" button at Tools/Data
-	*/
-	$scope.add_tools_cancel_clicked = function() {
-		$scope.add_tool_show = false;
-	};
-
 	// ###########################################
 	// ########### TALK WITH DOCKER SERVER #######
 	// ###########################################
 
 	/*
+	* Append text to log_ace
+	*/
+	$scope.log_ace_append = function(text) {
+		log_ace.setValue(log_ace.getValue() + '\n' + text, 1);
+	};
+
+	/*
 	* DOCKER GET IDLE
 	*/
 	$scope.docker_get_idle = function(docker_none_idle, docker_found_idle, docker_get_output, none_counter, commands) {
+
+		$scope.log_ace_append('Trying to reach validation server..');
+
 		$scope.ajax(
 			'http://139.91.70.73:8080/',
 			{
@@ -209,6 +182,7 @@ app.controller('arkalos_Ctrl', function($scope, $http, $timeout) {
 					}
 				}
 				else {
+					$scope.log_ace_append('Found IDLE testing process in effort #' + (none_counter+1));
 					docker_found_idle(docker_get_output, p_index, commands);
 				}
 			},
@@ -216,7 +190,9 @@ app.controller('arkalos_Ctrl', function($scope, $http, $timeout) {
 				console.log('THIS SHOULD NEVER HAPPEN 384');
 			},
 			function(statusText) {
-				console.log('COULD NOT REACH DOCKER SERVER 1 : ' + statusText );
+				//console.log('COULD NOT REACH DOCKER SERVER 1 : ' + statusText );
+				//log_ace.setValue('',1)
+				$scope.log_ace_append('Could not reach validation server.. Please try later.');
 			}
 		);
 	};
@@ -225,6 +201,9 @@ app.controller('arkalos_Ctrl', function($scope, $http, $timeout) {
 	* DOCKER SUBMIT COMMANDS
 	*/
 	$scope.docker_found_idle = function(docker_get_output, p_index, commands) {
+
+		$scope.log_ace_append('Submitting installation commands..');
+
 		$scope.ajax(
 			'http://139.91.70.73:8080/',
 			{
@@ -234,6 +213,7 @@ app.controller('arkalos_Ctrl', function($scope, $http, $timeout) {
 			},
 			function(response) {
 				if (response['response'] == 'SUBMITTED') {
+					$scope.log_ace_append('Commands submitted.');
 					docker_get_output(p_index)
 				}
 				else {
@@ -244,7 +224,8 @@ app.controller('arkalos_Ctrl', function($scope, $http, $timeout) {
 				console.log('THIS SHOULD NEVER HAPPEN 188');
 			},
 			function(statusText) {
-				console.log('COULD NOT REACH DOCKER SERVER 2 : ' + statusText);
+				$scope.log_ace_append('Error 25. Could not reach validation server .');
+				//console.log('COULD NOT REACH DOCKER SERVER 2 : ' + statusText);
 			}
 		);
 	};
@@ -253,6 +234,9 @@ app.controller('arkalos_Ctrl', function($scope, $http, $timeout) {
 	* DOCKER GET OUTPUT
 	*/
 	$scope.docker_get_output = function(p_index) {
+
+		$scope.log_ace_append('Waiting for output..');
+
 		$scope.ajax(
 			'http://139.91.70.73:8080/',
 			{
@@ -262,8 +246,15 @@ app.controller('arkalos_Ctrl', function($scope, $http, $timeout) {
 			function(response) {
 				var output = response['output'];
 				var last = response['last'];
-				console.log('RECEIVED OUTPUT:');
-				console.log(output);
+				//console.log('RECEIVED OUTPUT:');
+				if ($.trim(output) == '') {
+					$scope.log_ace_append('Received empty output.');
+				}
+				else {
+					$scope.log_ace_append('Received non-empty output:');
+					$scope.log_ace_append(output);
+				}
+				
 				if (last) {
 					//FINISHED (set verified??)
 				}
@@ -289,7 +280,7 @@ app.controller('arkalos_Ctrl', function($scope, $http, $timeout) {
 	/*
 	* WRAPPER FUNCTION. USE THIS
 	*/
-	$scope.do_docker = function(commands) {
+	$scope.do_docker = function(commands, validation_commands) {
 
 		$scope.docker_get_idle(
 			function() {console.log('QUITING..');}, // docker_none_idle, 
@@ -306,14 +297,75 @@ app.controller('arkalos_Ctrl', function($scope, $http, $timeout) {
 	// ###########################################
 
 
+
+	/////////////////////////////////////////////////////
+	/////////////TOOLS / DATA ///////////////////////////
+	/////////////////////////////////////////////////////
+
+	/*
+	* Clicked the "Tools/Data" from navbar
+	*/
+	$scope.nav_bar_tools_clicked = function() {
+		$scope.initialize_ui();
+		$scope.tools_show = true;
+	};
+
+	/*
+	* Clicked the "Add" button from the Tools Table
+	*/
+	$scope.tools_table_add_button_clicked = function() {
+
+		if ($scope.username == '') {
+			$scope.tools_error_msg = 'Login to add a Tool/Dataset';
+		}
+		else {
+			$scope.tool_current_version = 'N/A';
+			$scope.tools_created_at = 'N/A';
+			$scope.add_tool_show = true;
+
+			var install_commands_init =	"# Insert the BASH commands that install the tool\n" +
+										"# The following tools are already installed: gcc, g++, make, zip, wget, curl, bzip2\n";
+									
+			var validate_commands_init = "# Insert the BASH commands that check if the tool is properly installed.\n" + 
+										"# For example:\n" + 
+										"#mytool --version\n" +
+										"#if [ $? -eq 0 ] ; then\n" +
+										"#    echo 'mytool is already installed'\n" +
+										"#    exit 0\n" +
+										"#fi\n\n" + 
+										"exit 1 # DO NOT REMOVE THIS (or make sure that the script returns non zero exit code in case of failure)\n";
+
+			var log_ace_init = "Logs from validation process in Docker\nPress 'Validate' button to test installation script";
+
+			installation_ace.setValue(install_commands_init, 1);
+
+			validate_installation_ace.setValue(validate_commands_init, 1);
+
+			log_ace.setValue(log_ace_init, 1);
+
+		}
+
+
+	};
+
+	/*
+	* Clicked the "Cancel" button at Tools/Data
+	*/
+	$scope.add_tools_cancel_clicked = function() {
+		$scope.add_tool_show = false;
+	};
+
+
+
 	/*
 	* ARKALOS WORKER SERVER: http://139.91.70.73:8080/ 
 	*/
-	$scope.add_tools_save_clicked = function() {
-		var install_commands = installation_ace.getValue()
-		console.log(install_commands);
+	$scope.add_tools_validate = function() {
+		var install_commands = installation_ace.getValue();
+		var validation_commands = validate_installation_ace.getValue();
+		//console.log(install_commands);
 
-		$scope.do_docker(install_commands);
+		$scope.do_docker(install_commands, validation_commands);
 	};
 
 	/*

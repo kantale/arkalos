@@ -488,6 +488,9 @@ class S(BaseHTTPRequestHandler):
 		elif action == 'GET OUTPUT':
 			p_index = data['p_index']
 			message = self.workers.get_output(p_index)
+
+			message = message.replace('ARKALOS||OUTPUT||', '')
+
 			ret_data = {
 				'success': True,
 				'p_index': p_index, 
