@@ -17,6 +17,22 @@ cat > commands.sh << EOF
 {commands}
 EOF
 
+cat > validate.sh << EOF
+{validate}
+EOF
+
+cat > runvalidate.sh << EOF
+
+bash validate.sh
+if [ \$? -eq 0 ] ; then
+    echo "ARKALOS VALIDATION SUCCEEDED"
+    exit 0
+fi
+echo "ARKALOS VALIDATION FAILED"
+exit 1
+
+EOF
+
 cat > Dockerfile << EOF
 FROM {base}
 
@@ -25,9 +41,9 @@ RUN apt-get update --fix-missing && apt-get install -y git \
     wget curl \
     zip bzip2
 
-ADD commands.sh /root
+ADD commands.sh validate.sh runvalidate.sh /root/
 
-RUN cd /root; chmod +x commands.sh ; /bin/bash commands.sh
+RUN cd /root; chmod +x commands.sh ; /bin/bash commands.sh ; /bin/bash runvalidate.sh
 
 ENTRYPOINT [ "/bin/bash" ]
 
@@ -42,12 +58,13 @@ cd ../
 def random_id():
 	return 'd__' + str(uuid.uuid4()).split('-')[-1]
 
-def build_image_script(commands, base='Ubuntu_14_04'):
+def build_image_script(commands, validate, base='Ubuntu_14_04'):
 	rnd_id = random_id()
 
 	parameters = {
 		'rnd_id': rnd_id,
 		'commands': commands,
+		'validate': validate,
 		'base': base_images[base],
 	}
 

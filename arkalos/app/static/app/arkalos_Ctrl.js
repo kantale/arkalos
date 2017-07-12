@@ -160,7 +160,7 @@ app.controller('arkalos_Ctrl', function($scope, $http, $timeout) {
 	/*
 	* DOCKER GET IDLE
 	*/
-	$scope.docker_get_idle = function(docker_none_idle, docker_found_idle, docker_get_output, none_counter, commands) {
+	$scope.docker_get_idle = function(docker_none_idle, docker_found_idle, docker_get_output, none_counter, commands, validation_commands) {
 
 		$scope.log_ace_append('Trying to reach validation server..');
 
@@ -178,12 +178,12 @@ app.controller('arkalos_Ctrl', function($scope, $http, $timeout) {
 					}
 					else {
 						console.log('GET IDLE NONE COUNT: ' + none_counter + ' RETRYING..' );
-						$scope.docker_get_idle(docker_none_idle, docker_found_idle, docker_get_output, none_counter+1, commands);
+						$scope.docker_get_idle(docker_none_idle, docker_found_idle, docker_get_output, none_counter+1, commands, validation_commands);
 					}
 				}
 				else {
 					$scope.log_ace_append('Found IDLE testing process in effort #' + (none_counter+1));
-					docker_found_idle(docker_get_output, p_index, commands);
+					docker_found_idle(docker_get_output, p_index, commands, validation_commands);
 				}
 			},
 			function(response) {
@@ -200,7 +200,7 @@ app.controller('arkalos_Ctrl', function($scope, $http, $timeout) {
 	/*
 	* DOCKER SUBMIT COMMANDS
 	*/
-	$scope.docker_found_idle = function(docker_get_output, p_index, commands) {
+	$scope.docker_found_idle = function(docker_get_output, p_index, commands, validation_commands) {
 
 		$scope.log_ace_append('Submitting installation commands..');
 
@@ -209,7 +209,8 @@ app.controller('arkalos_Ctrl', function($scope, $http, $timeout) {
 			{
 				'action': 'SUBMIT',
 				'p_index': p_index,
-				'task': commands
+				'task': commands,
+				'validate': validation_commands
 			},
 			function(response) {
 				if (response['response'] == 'SUBMITTED') {
@@ -246,6 +247,7 @@ app.controller('arkalos_Ctrl', function($scope, $http, $timeout) {
 			function(response) {
 				var output = response['output'];
 				var last = response['last'];
+				var validated = response['validated'];
 				//console.log('RECEIVED OUTPUT:');
 				if ($.trim(output) == '') {
 					$scope.log_ace_append('Received empty output.');
@@ -257,22 +259,33 @@ app.controller('arkalos_Ctrl', function($scope, $http, $timeout) {
 				
 				if (last) {
 					//FINISHED (set verified??)
+					$scope.log_ace_append('Finished!');
 				}
 				else {
-					console.log('NOT FINISHED.. WAITING MORE OUTPUT');
+					//console.log('NOT FINISHED.. WAITING MORE OUTPUT');
+					$scope.log_ace_append('Not finished.');
 					//WAIT 1.5 SEC
 					$timeout(
 						function() {$scope.docker_get_output(p_index)},
 						1500
 					);
+				}
 
+				if (validated == 1) {
+					// DID NOT VALIDATE
+					$scope.log_ace_append('Validation failed.');
+				}
+				else if (validated == 2) {
+					// VALIDATIONS SUCCEEDED
+					$scope.log_ace_append('Validation succeeded.');
 				}
 			},
 			function(response) {
 				console.log('THIS SHOULD NEVER HAPPEN 782');
 			},
 			function(statusText) {
-				console.log('COUND NOT REACH DOCKER SERVER 3 : ' + statusText);
+				//console.log('COUND NOT REACH DOCKER SERVER 3 : ' + statusText);
+				$scope.log_ace_append('Error 26. Could not reach validation server .');
 			}
 		);
 	};
@@ -283,11 +296,15 @@ app.controller('arkalos_Ctrl', function($scope, $http, $timeout) {
 	$scope.do_docker = function(commands, validation_commands) {
 
 		$scope.docker_get_idle(
-			function() {console.log('QUITING..');}, // docker_none_idle, 
+			function() {
+				//console.log('QUITING..');
+				$scope.log_ace_append('Validation server is too busy.. Try again later.')
+			}, // docker_none_idle, 
 			$scope.docker_found_idle, //docker_found_idle, 
 			$scope.docker_get_output, //docker_get_output, 
 			0, //none_counter, 
-			commands);
+			commands,
+			validation_commands);
 
 	};
 	

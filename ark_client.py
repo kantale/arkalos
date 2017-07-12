@@ -97,9 +97,9 @@ def execute(cmd):
 
 		popen.stdout.close()
 
-def execute_thread(q, cmd):
+def execute_thread(q, cmd, validate):
 	
-	image_script = build_image_script(cmd)
+	image_script = build_image_script(cmd, validate)
 
 	for std_kind, line in execute2(image_script):
 		#print ('#### ' + line)
@@ -107,7 +107,7 @@ def execute_thread(q, cmd):
 		if std_kind == 0:
 			pass #STDOUT TODO
 		elif std_kind == 1:
-			pass #STDERR TOSO 
+			pass #STDERR TODO 
 		else:
 			raise Exception('This should never happen')
 
@@ -143,9 +143,10 @@ def process_worker(q_input, q_output, my_id,):
 				action = message['ACTION']
 				if action == 'START':
 					task = message['TASK']
+					validate = message['VALIDATE']
 					worker_queue = threading_queue()
 					print ("WORKER: {} STARTING TASK: {}".format(my_id, task))
-					t = Thread(target=execute_thread, args=(worker_queue, task))
+					t = Thread(target=execute_thread, args=(worker_queue, task, validate))
 					t.start()
 					busy = True
 				elif action == 'AMIBUSY?':
@@ -316,7 +317,9 @@ class ArkalosWorkers:
 
 						pool[submit_process]['q_input'].put({
 							'ACTION': 'START',
-							'TASK': message['TASK']
+							'TASK': message['TASK'],
+							'VALIDATE': message['VALIDATE'],
+
 							})
 
 				elif message['ACTION'] == 'GET OUTPUT':
@@ -363,8 +366,13 @@ class ArkalosWorkers:
 
 		return idle_process
 
-	def submit(self, idle_process, task):
-		self.q_input.put({'ACTION': 'SUBMIT', 'p_index': idle_process, 'TASK': task})
+	def submit(self, idle_process, task, validate):
+		self.q_input.put({
+			'ACTION': 'SUBMIT', 
+			'p_index': idle_process, 
+			'TASK': task,
+			'VALIDATE': validate,
+		})
 
 
 	def get_output(self, idle_process):
@@ -478,8 +486,9 @@ class S(BaseHTTPRequestHandler):
 			}
 		elif action == 'SUBMIT':
 			task = data['task']
+			validate = data['validate']
 			p_index = data['p_index']
-			self.workers.submit(p_index, task)
+			self.workers.submit(p_index, task, validate)
 			ret_data = {
 				'success': True,
 				'p_index': p_index, 
@@ -490,12 +499,22 @@ class S(BaseHTTPRequestHandler):
 			message = self.workers.get_output(p_index)
 
 			message = message.replace('ARKALOS||OUTPUT||', '')
+			last = 'ARKALOS||FINISHED' in message
+			message = message.replace('ARKALOS||FINISHED', '')
+
+			if 'ARKALOS VALIDATION FAILED' in message:
+				validated = 1
+			elif 'ARKALOS VALIDATION SUCCEEDED' in message:
+				validated = 2
+			else:
+				validated = 0
 
 			ret_data = {
 				'success': True,
 				'p_index': p_index, 
 				'output': message,
-				'last': 'ARKALOS||FINISHED' in message,
+				'last': last,
+				'validated': validated,
 			}
 
 		else:
