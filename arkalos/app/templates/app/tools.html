@@ -80,12 +80,13 @@
 
           <div class="form-group">
             <div class="col-sm-2 col-sm-offset-2">
-              <div class="alert alert-danger">
-                <strong>NOT VALIDATED</strong> 
+              <div class="alert" ng-class="{'alert-danger': !add_tools_is_validated , 'alert-success': add_tools_is_validated}">
+                <strong><span ng-bind="add_tools_is_validated ? 'VALIDATED' : 'NOT VALIDATED'"></span></strong> 
               </div>
             </div>
             <div class="col-sm-2">
-              <button class="btn btn-default btn-lg" ng-click="add_tools_validate()" >Validate</button>
+              <button class="btn btn-default" ng-click="add_tools_validate()" ng-class="{disabled : validate_button_disabled}">Validate</button>
+              <button class="btn btn-default" ng-click="add_tools_log_clear()" >Clear</button>
             </div>
             <div class="col-sm-6">
               <div id="log_ace"></div>

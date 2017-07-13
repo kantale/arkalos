@@ -64,6 +64,8 @@ app.controller('arkalos_Ctrl', function($scope, $http, $timeout) {
 		$scope.tools_show = false;
 		$scope.references_show = false;
 		$scope.references_error_msg = '';
+		$scope.validate_button_disabled = false;
+		$scope.add_tools_is_validated = false;
 	};
 
 
@@ -192,7 +194,8 @@ app.controller('arkalos_Ctrl', function($scope, $http, $timeout) {
 			function(statusText) {
 				//console.log('COULD NOT REACH DOCKER SERVER 1 : ' + statusText );
 				//log_ace.setValue('',1)
-				$scope.log_ace_append('Could not reach validation server.. Please try later.');
+				$scope.log_ace_append('Error 23. Could not reach validation server.. Please try later.');
+				$scope.validate_button_disabled = false;
 			}
 		);
 	};
@@ -226,6 +229,7 @@ app.controller('arkalos_Ctrl', function($scope, $http, $timeout) {
 			},
 			function(statusText) {
 				$scope.log_ace_append('Error 25. Could not reach validation server .');
+				$scope.validate_button_disabled = false;
 				//console.log('COULD NOT REACH DOCKER SERVER 2 : ' + statusText);
 			}
 		);
@@ -274,10 +278,14 @@ app.controller('arkalos_Ctrl', function($scope, $http, $timeout) {
 				if (validated == 1) {
 					// DID NOT VALIDATE
 					$scope.log_ace_append('Validation failed.');
+					$scope.validate_button_disabled = false;
+					$scope.add_tools_is_validated = false;
 				}
 				else if (validated == 2) {
 					// VALIDATIONS SUCCEEDED
 					$scope.log_ace_append('Validation succeeded.');
+					$scope.validate_button_disabled = false;
+					$scope.add_tools_is_validated = true;
 				}
 			},
 			function(response) {
@@ -286,6 +294,7 @@ app.controller('arkalos_Ctrl', function($scope, $http, $timeout) {
 			function(statusText) {
 				//console.log('COUND NOT REACH DOCKER SERVER 3 : ' + statusText);
 				$scope.log_ace_append('Error 26. Could not reach validation server .');
+				$scope.validate_button_disabled = false;
 			}
 		);
 	};
@@ -341,9 +350,11 @@ app.controller('arkalos_Ctrl', function($scope, $http, $timeout) {
 			$scope.add_tool_show = true;
 
 			var install_commands_init =	"# Insert the BASH commands that install the tool\n" +
-										"# The following tools are already installed: gcc, g++, make, zip, wget, curl, bzip2\n";
-									
+										"# The following tools are already installed: git, gcc, g++, make, zip, wget, curl, bzip2\n" +
+										"# No need to run 'apt-get update' (already performed)\n";
+
 			var validate_commands_init = "# Insert the BASH commands that check if the tool is properly installed.\n" + 
+										"# exit with 0 if it succeeds or non-zero if it fails\n" +
 										"# For example:\n" + 
 										"#mytool --version\n" +
 										"#if [ $? -eq 0 ] ; then\n" +
@@ -376,13 +387,22 @@ app.controller('arkalos_Ctrl', function($scope, $http, $timeout) {
 
 	/*
 	* ARKALOS WORKER SERVER: http://139.91.70.73:8080/ 
+	* Button "Validate" clicked
 	*/
 	$scope.add_tools_validate = function() {
 		var install_commands = installation_ace.getValue();
 		var validation_commands = validate_installation_ace.getValue();
 		//console.log(install_commands);
 
+		$scope.validate_button_disabled = true;
 		$scope.do_docker(install_commands, validation_commands);
+	};
+
+	/*
+	* Clear log button clicked
+	*/
+	$scope.add_tools_log_clear = function() {
+		log_ace.setValue('',1);
 	};
 
 	/*
