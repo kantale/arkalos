@@ -66,6 +66,7 @@ app.controller('arkalos_Ctrl', function($scope, $http, $timeout) {
 		$scope.references_error_msg = '';
 		$scope.validate_button_disabled = false;
 		$scope.add_tools_is_validated = false;
+		$scope.add_tools_exposed_vars = [['','','']];
 	};
 
 
@@ -434,6 +435,20 @@ app.controller('arkalos_Ctrl', function($scope, $http, $timeout) {
 				$scope.tools_error_msg = statusText;
 			}
 		);
+	};
+
+	/*
+	* "+" button clicked in exposed vars
+	*/
+	$scope.add_tools_add_exposed_var = function() {
+		$scope.add_tools_exposed_vars.push(['', '', '']);
+	};
+
+	/*
+	*	'-' button clicked in exposed vars
+	*/
+	$scope.add_tools_remove_exposed_var = function(index) {
+		$scope.add_tools_exposed_vars.splice(index, 1);
 	};
 
 	////////////////////////////////////////////////////
