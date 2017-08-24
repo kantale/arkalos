@@ -409,8 +409,19 @@ app.controller('arkalos_Ctrl', function($scope, $http, $timeout) {
 	/*
 	* Clicked the "Save" button in Add Tools
 	*/
-	$scope.add_tools_save_clicked_old = function() {
+	$scope.add_tools_save_clicked = function() {
 		
+		if (false) { // TODO: SET TRUE IN PRODUCTION!
+			if (!$scope.validate_button_disabled) {
+				$scope.tools_error_msg = 'Please validate the tool before saving.'
+				return;
+			}
+		}
+
+		// Remove any error message
+		$scope.tools_error_msg = '';
+
+		// Get references from UI
 		var references = [];
 		$.each($('#ta_tools_ref').tagsinput('items'), function(key,value) {references.push(value.value)});
 
@@ -423,10 +434,13 @@ app.controller('arkalos_Ctrl', function($scope, $http, $timeout) {
 				"url": $scope.tool_url_model,
 				"description": $scope.tool_description_model,
 				"installation": installation_ace.getValue(),
-				"references": JSON.stringify(references)
+				"references": JSON.stringify(references),
+				"exposed": $scope.add_tools_exposed_vars
 			},
 			function(response) {
-				alert('add tool success');
+				//alert('add tool success');
+				$scope.tools_created_at = response['created_at'];
+				$scope.tool_current_version = response['current_version'];
 			},
 			function(response) {
 				$scope.tools_error_msg = response['error_message'];
@@ -490,6 +504,7 @@ app.controller('arkalos_Ctrl', function($scope, $http, $timeout) {
 	* Clicked "Save" in "Add References"
 	*/
 	$scope.add_reference_save_clicked = function() {
+
 		$scope.ajax(
 			"add_reference/",
 			{

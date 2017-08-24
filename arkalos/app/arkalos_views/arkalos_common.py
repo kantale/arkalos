@@ -6,7 +6,7 @@ from django.contrib.auth import authenticate, login, logout
 from django.shortcuts import redirect
 
 from django.core.validators import URLValidator # https://stackoverflow.com/questions/7160737/python-how-to-validate-a-url-in-python-malformed-or-not 
-from django.core.exceptions import ValidationError
+from django.core.exceptions import ValidationError, ObjectDoesNotExist
 
 from app.models import Reference, Tools
 
@@ -26,6 +26,7 @@ pybtex_html_backend = pybtex.plugin.find_plugin('pybtex.backends', 'html')()
 pybtex_parser = pybtex.database.input.bibtex.Parser()
 
 sep = '||'
+format_time_string = '%a, %d %b %Y %H:%M:%S' # RFC 2822 Internet email standard. https://docs.python.org/2/library/time.html#time.strftime   # '%Y-%m-%d, %H:%M:%S'
 url_validator = URLValidator() # https://stackoverflow.com/questions/7160737/python-how-to-validate-a-url-in-python-malformed-or-not 
 
 class ArkalosException(Exception):
@@ -149,6 +150,12 @@ def URL_validate(url):
 
     return True
 
+def format_time(t):
+    '''
+    Universal method to string format time vars
+    '''
+    return t.strftime(format_time_string)
+
 ###########################################################################
 ##################DATABASE FUNCTIONS#######################################
 ###########################################################################
@@ -195,8 +202,23 @@ def serve_boostrap_table(model, bindings, order_by, **kwargs):
 def db_exists(model, filters):
     return model.objects.filter(**filters).exists()
 
+def get_maximum_current_version(model, name):
+    '''
+    Return the next available current_version
+    '''
+    try:
+        model.objects.get(name=name)
+    except ObjectDoesNotExist:
+        return 1
+
+    a=1/0 # Throw exception deliberatly
+
 ###########################################################################
 ##################END OF DATABASE#######################################
+###########################################################################
+
+###########################################################################
+################## REGISTER ###############################################
 ###########################################################################
 
 
@@ -257,6 +279,11 @@ def logoutlocal(request):
     '''
     logout(request)
     return redirect('/')
+
+###########################################################################
+################## END OF REGISTER ########################################
+###########################################################################
+
 
 ###############################
 ####REFERENCES#################
@@ -386,25 +413,75 @@ def get_tools(request, **kwargs):
 @has_data
 @has_field(
     ['name', 'version', 'url', 'description', 'installation'], 
-    ['Name cannot be empty', 'Version cannot be empty', 'URL cannot be empty', 'Description cannot be empty', 'Installation cannot be empty'])
+    ['Name cannot be empty', 'Version cannot be empty', 'Link cannot be empty', 'Description cannot be empty', 'Installation cannot be empty'])
 @has_error
 def add_tool(request, **kwargs):
+    '''
+    Attempt to add a new Tool
+    '''
 
     system = kwargs['system']
     system = simplejson.loads(system)
     if not len(system):
         return fail('Please select one or more systems')
-    
+
     url = kwargs['url']
     if not URL_validate(url):
         return fail('URL: {} does not seem to be valid'.format(url))
 
     references = kwargs['references']
     references = simplejson.loads(references)
-    
+    references = [Reference.objects.get(code=r) for r in references]
 
-    #print (kwargs['system'])
-    return success()
+    name = kwargs['name']
+    current_version = get_maximum_current_version(Tools, name)
+    if current_version == 1:
+        previous_version = None
+    else:
+        a=1/0 # Throw exception deliberately
+    print ('Current version: {}'.format(current_version))
+
+    user = get_user(request)
+    version = kwargs['version']
+    description = kwargs['description']
+    installation=kwargs['installation']
+    exposed = kwargs['exposed']
+    #print ('Exposed: {} {}'.format(exposed, type(exposed).__name__)) # This is a list
+    exposed = [e for e in exposed if any(e)] # Remove empty
+    exposed = simplejson.dumps(exposed) # Serialize
+
+
+    new_tool = Tools(
+        user=user,
+        name=name,
+        version=version,
+        system=system,
+        current_version=current_version,
+        previous_version=previous_version,
+        url = url,
+        description = description,
+        installation = installation,
+        exposed = exposed
+        );
+
+    new_tool.save()
+
+    #Add references
+    new_tool.references.add(*references)
+    new_tool.save()
+
+    #TODO: Add dependencies
+
+    #Get created at
+    created_at = format_time(new_tool.created_at)
+    print ('Created at: {}'.format(created_at))
+
+    ret = {
+        'created_at': created_at,
+        'current_version': current_version,
+    }
+
+    return success(ret)
 
 ########################################
 ####END OF TOOLS / DATA#################

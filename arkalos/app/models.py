@@ -30,12 +30,14 @@ class Tools(models.Model):
 	version = models.CharField(max_length=100)
 	system = models.CharField(max_length=100) # TODO perhaps "choices" is better https://docs.djangoproject.com/en/1.11/ref/models/fields/#choices 
 	current_version = models.PositiveIntegerField()
-	previous_version = models.PositiveIntegerField()
+	previous_version = models.PositiveIntegerField(null=True)
 	created_at = models.DateTimeField(auto_now_add=True,)
 	url = models.URLField() # WARNING!! DEFAULT MAX SIZE IS 200 # https://docs.djangoproject.com/en/1.11/ref/models/fields/#urlfield 
 	description = models.TextField()
 	installation = models.TextField()
 	references = models.ManyToManyField(Reference)
+	dependencies = models.ManyToManyField("Tools")
+	exposed = models.TextField() # JSON serialized
 
 
 
