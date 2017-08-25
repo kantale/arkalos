@@ -73,4 +73,13 @@ $('#ta_tools_ref').tagsinput({
 );
 //$('#bloodhound_tools_references').tagsinput('add', { id: 'tag id', label: 'tag lable' });
 
+//Bootstrap table
+
+$('#tools_table').on('click-row.bs.table', function (e, row, $element) {
+	angular.element($('#tools_table')).scope().$apply(function(){
+		//alert(row['url']);
+		angular.element($('#tools_table')).scope().tools_table_row_clicked(row);
+	});
+});
+
 });

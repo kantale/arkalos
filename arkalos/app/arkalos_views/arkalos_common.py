@@ -1,5 +1,6 @@
 
 from django.http import HttpResponse
+
 from django.contrib.auth.models import User
 from django.contrib.auth import authenticate, login, logout
 
@@ -8,7 +9,10 @@ from django.shortcuts import redirect
 from django.core.validators import URLValidator # https://stackoverflow.com/questions/7160737/python-how-to-validate-a-url-in-python-malformed-or-not 
 from django.core.exceptions import ValidationError, ObjectDoesNotExist
 
+from django.db.models import Max
+
 from app.models import Reference, Tools
+
 
 import io
 import six
@@ -160,6 +164,16 @@ def format_time(t):
 ##################DATABASE FUNCTIONS#######################################
 ###########################################################################
 
+def bootstrap_table_format_field(entry, value):
+    '''
+    Formats the field of a bootstrap table. Values are taken from bidings
+    '''
+
+    if type(value) is str:
+        return getattr(entry, value)
+    elif callable(value):
+        return value(entry)
+
 def serve_boostrap_table(model, bindings, order_by, **kwargs):
     '''
     http://bootstrap-table.wenzhixin.net.cn/ 
@@ -193,13 +207,16 @@ def serve_boostrap_table(model, bindings, order_by, **kwargs):
         querySet = model.objects.order_by(order_by)[from_offset:to_offset]
 
     ret = {'total': count}
-    ret['rows'] = [ {k: getattr(entry, v) for k, v in bindings.items()} for entry in querySet]
+    ret['rows'] = [ {k: bootstrap_table_format_field(entry, v) for k, v in bindings.items()} for entry in querySet]
 
     json = simplejson.dumps(ret)
     return HttpResponse(json, content_type='application/json')
 
 
 def db_exists(model, filters):
+    '''
+    Does this entry exist?
+    '''
     return model.objects.filter(**filters).exists()
 
 def get_maximum_current_version(model, name):
@@ -211,7 +228,13 @@ def get_maximum_current_version(model, name):
     except ObjectDoesNotExist:
         return 1
 
-    a=1/0 # Throw exception deliberatly
+    max_entry = model.objects.filter(name=name).aggregate(Max('current_version'))
+    assert type(max_entry) is dict
+    assert len(max_entry) == 1
+
+    return max_entry['current_version__max'] + 1
+
+
 
 ###########################################################################
 ##################END OF DATABASE#######################################
@@ -405,10 +428,49 @@ def get_tools(request, **kwargs):
     '''
 
     bindings = {
-        'name' : 'name'
+        'name' : 'name',
+        'url': lambda entry : '<a href="{}" target="_blank">{}</a>'.format(entry.url, entry.url),
+        'description': 'description',
     }
 
     return serve_boostrap_table(Tools, bindings, 'name', **kwargs)
+
+@has_data
+@has_error
+def get_tools_ui(request, **kwargs):
+    '''
+    Called when we want an explicit tool from the UI
+    '''
+    name = kwargs['name']
+    
+    # Do we have a current version in arguments? If yes: use this, else, take the maximum
+    current_version = kwargs.get('current_version', get_maximum_current_version(Tools, name)-1)
+
+    tool = Tools.objects.get(name=name, current_version=current_version)
+
+    print ('System: {}'.format(tool.system))
+
+    exposed = simplejson.loads(tool.exposed)
+    if not len(exposed):
+        exposed = [['', '', '']]
+
+    ret = {
+        'name': tool.name,
+        'current_version': current_version,
+        'version' : tool.version, 
+        'system' : simplejson.loads(tool.system),
+        'username': tool.user.username,
+        'created_at': format_time(tool.created_at),
+        'url': tool.url,
+        'description': tool.description,
+        'installation': tool.installation,
+        'validate_installation': tool.validate_installation,
+        'exposed': exposed,
+    }
+
+    return success(ret)
+
+
 
 @has_data
 @has_field(
@@ -421,8 +483,8 @@ def add_tool(request, **kwargs):
     '''
 
     system = kwargs['system']
-    system = simplejson.loads(system)
-    if not len(system):
+    system_p = simplejson.loads(system)
+    if not len(system_p):
         return fail('Please select one or more systems')
 
     url = kwargs['url']
@@ -445,6 +507,7 @@ def add_tool(request, **kwargs):
     version = kwargs['version']
     description = kwargs['description']
     installation=kwargs['installation']
+    validate_installation = kwargs['validate_installation']
     exposed = kwargs['exposed']
     #print ('Exposed: {} {}'.format(exposed, type(exposed).__name__)) # This is a list
     exposed = [e for e in exposed if any(e)] # Remove empty
@@ -461,7 +524,8 @@ def add_tool(request, **kwargs):
         url = url,
         description = description,
         installation = installation,
-        exposed = exposed
+        validate_installation = validate_installation,
+        exposed = exposed,
         );
 
     new_tool.save()

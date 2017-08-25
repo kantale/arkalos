@@ -2,7 +2,7 @@ from django.shortcuts import render
 
 from .arkalos_views import register, login, logout, \
 	add_reference, get_references, reference_suggestions, \
-	get_tools, add_tool
+	get_tools, get_tools_ui, add_tool
 
 def index(request):
 

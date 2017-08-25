@@ -35,6 +35,7 @@ class Tools(models.Model):
 	url = models.URLField() # WARNING!! DEFAULT MAX SIZE IS 200 # https://docs.djangoproject.com/en/1.11/ref/models/fields/#urlfield 
 	description = models.TextField()
 	installation = models.TextField()
+	validate_installation = models.TextField()
 	references = models.ManyToManyField(Reference)
 	dependencies = models.ManyToManyField("Tools")
 	exposed = models.TextField() # JSON serialized

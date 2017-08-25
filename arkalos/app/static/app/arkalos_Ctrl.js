@@ -348,6 +348,7 @@ app.controller('arkalos_Ctrl', function($scope, $http, $timeout) {
 		else {
 			$scope.tool_current_version = 'N/A';
 			$scope.tools_created_at = 'N/A';
+			$scope.tools_username = $scope.username;
 			$scope.add_tool_show = true;
 
 			var install_commands_init =	"# Insert the BASH commands that install the tool\n" +
@@ -434,6 +435,7 @@ app.controller('arkalos_Ctrl', function($scope, $http, $timeout) {
 				"url": $scope.tool_url_model,
 				"description": $scope.tool_description_model,
 				"installation": installation_ace.getValue(),
+				"validate_installation": validate_installation_ace.getValue(),
 				"references": JSON.stringify(references),
 				"exposed": $scope.add_tools_exposed_vars
 			},
@@ -463,6 +465,42 @@ app.controller('arkalos_Ctrl', function($scope, $http, $timeout) {
 	*/
 	$scope.add_tools_remove_exposed_var = function(index) {
 		$scope.add_tools_exposed_vars.splice(index, 1);
+	};
+
+	/*
+	* A row at the tools table was clicked
+	*/
+	$scope.tools_table_row_clicked = function(row) {
+		//alert(row['name']);
+		$scope.add_tool_show = true;
+
+		//Get more info from server and feed them to UI
+		$scope.ajax(
+			'get_tools_ui/',
+			{
+				'name': row['name']
+			},
+			function(response) {
+				$scope.tool_name_model = response['name'];
+				$scope.tool_current_version = response['current_version'];
+				$scope.tool_version_model = response['version'];
+				$('#system-select').multiselect('select', response['system']);
+				$scope.tools_username = response['username'];
+				$scope.tools_created_at = response['created_at'];
+				$scope.tool_url_model = response['url'];
+				$scope.tool_description_model = response['description'];
+				installation_ace.setValue(response['installation']);
+				validate_installation_ace.setValue(response['validate_installation']);
+				$scope.add_tools_exposed_vars = response['exposed'];
+			},
+			function(response) {
+
+			},
+			function(statusText) {
+
+			}
+		);
+
 	};
 
 	////////////////////////////////////////////////////
