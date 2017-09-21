@@ -498,7 +498,7 @@ class S(BaseHTTPRequestHandler):
 			p_index = data['p_index']
 			message = self.workers.get_output(p_index)
 
-			message = message.replace('ARKALOS||OUTPUT||', '')
+			message = message.replace('ARKALOS||OUTPUT||', '')`
 			last = 'ARKALOS||FINISHED' in message
 			message = message.replace('ARKALOS||FINISHED', '')
 

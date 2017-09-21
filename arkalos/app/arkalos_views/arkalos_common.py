@@ -429,6 +429,7 @@ def get_tools(request, **kwargs):
 
     bindings = {
         'name' : 'name',
+        'current_version': 'current_version',
         'url': lambda entry : '<a href="{}" target="_blank">{}</a>'.format(entry.url, entry.url),
         'description': 'description',
     }
@@ -442,9 +443,7 @@ def get_tools_ui(request, **kwargs):
     Called when we want an explicit tool from the UI
     '''
     name = kwargs['name']
-    
-    # Do we have a current version in arguments? If yes: use this, else, take the maximum
-    current_version = kwargs.get('current_version', get_maximum_current_version(Tools, name)-1)
+    current_version = kwargs['current_version']
 
     tool = Tools.objects.get(name=name, current_version=current_version)
 
@@ -497,10 +496,16 @@ def add_tool(request, **kwargs):
 
     name = kwargs['name']
     current_version = get_maximum_current_version(Tools, name)
+    previous_version = kwargs["previous_version"]
     if current_version == 1:
         previous_version = None
     else:
-        a=1/0 # Throw exception deliberately
+        assert type(previous_version) is int
+        assert previous_version > 0
+#    else:
+#        print ('Previous version: {}'.format(previous_version))
+#        print ('Current version: {}'.format(current_version))
+#        a=1/0 # Throw exception deliberately
     print ('Current version: {}'.format(current_version))
 
     user = get_user(request)

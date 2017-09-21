@@ -7,6 +7,9 @@ app.controller('arkalos_Ctrl', function($scope, $http, $timeout) {
 	$scope.init = function() {
 		$scope.username = username;
 		$scope.initialize_ui();
+		$scope.add_tool_dis_new_version = false; // Is the user editing a new tool version?
+		$scope.add_tool_dis_table_clicked = false; // Is the user just clicked a new tool from the table?
+		$scope.add_tool_dis_new_tool = false; // Is the user adding a new version?
 	};
 
 
@@ -373,6 +376,10 @@ app.controller('arkalos_Ctrl', function($scope, $http, $timeout) {
 
 			log_ace.setValue(log_ace_init, 1);
 
+			$scope.add_tool_dis_new_tool = true;
+			$scope.add_tool_dis_table_clicked = false;
+			$scope.add_tool_dis_new_version = false;
+
 		}
 
 
@@ -385,7 +392,22 @@ app.controller('arkalos_Ctrl', function($scope, $http, $timeout) {
 		$scope.add_tool_show = false;
 	};
 
+	/*
+	* Clicked the button "New Version" at Tools/Data
+	*/
+	$scope.add_tools_new_version_clicked = function() {
+		$scope.add_tool_dis_new_version = true;
+		$scope.add_tool_dis_table_clicked = false;
+		$scope.add_tool_dis_new_tool = false;
 
+		$scope.tool_previous_version = $scope.tool_current_version;
+		$scope.tool_current_version = 'N/A';
+		$scope.tools_created_at = 'N/A';
+		installation_ace.setReadOnly(false);
+		validate_installation_ace.setReadOnly(false);
+		$('#system-select').multiselect('enable');
+
+	};
 
 	/*
 	* ARKALOS WORKER SERVER: http://139.91.70.73:8080/ 
@@ -437,7 +459,8 @@ app.controller('arkalos_Ctrl', function($scope, $http, $timeout) {
 				"installation": installation_ace.getValue(),
 				"validate_installation": validate_installation_ace.getValue(),
 				"references": JSON.stringify(references),
-				"exposed": $scope.add_tools_exposed_vars
+				"exposed": $scope.add_tools_exposed_vars,
+				"previous_version": $scope.tool_previous_version
 			},
 			function(response) {
 				//alert('add tool success');
@@ -478,7 +501,8 @@ app.controller('arkalos_Ctrl', function($scope, $http, $timeout) {
 		$scope.ajax(
 			'get_tools_ui/',
 			{
-				'name': row['name']
+				'name': row['name'],
+				'current_version': row['current_version']
 			},
 			function(response) {
 				$scope.tool_name_model = response['name'];
@@ -492,15 +516,38 @@ app.controller('arkalos_Ctrl', function($scope, $http, $timeout) {
 				installation_ace.setValue(response['installation']);
 				validate_installation_ace.setValue(response['validate_installation']);
 				$scope.add_tools_exposed_vars = response['exposed'];
+
+				$scope.add_tool_dis_table_clicked = true;
+				$scope.add_tool_dis_new_tool = false;
+				$scope.add_tool_dis_new_version = false;
+
+				installation_ace.setReadOnly(true);
+				validate_installation_ace.setReadOnly(true);
+				$('#system-select').multiselect('disable');
+
 			},
 			function(response) {
-
+				$scope.tools_error_msg = response['error_message'];
 			},
 			function(statusText) {
-
+				$scope.tools_error_msg = statusText;
 			}
 		);
 
+	};
+
+	/*
+	* Clicked previous (<) from add_tools panel
+	*/
+	$scope.add_tools_previous_clicked = function() {
+		alert('111');
+	};
+
+	/*
+	* Clicked next (>) from add_tools_panel
+	*/
+	$scope.add_tools_next_clicked = function() {
+		alert('222');
 	};
 
 	////////////////////////////////////////////////////

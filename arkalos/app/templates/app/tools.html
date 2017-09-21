@@ -15,20 +15,20 @@
 
             <label class="col-sm-2 control-label" for="textinput">Name</label>
             <div class="col-sm-2">
-              <input id="tool_name" type="text" placeholder="" class="form-control" name="tool_name" ng-model="tool_name_model" >
+              <input id="tool_name" type="text" placeholder="" class="form-control" name="tool_name" ng-model="tool_name_model" ng-disabled=" add_tool_dis_table_clicked || add_tool_dis_new_version ">
             </div>
-            <div class="col-sm-2"><h5>Edit: <span class="glyphicon glyphicon-triangle-left"></span><span ng-bind="tool_current_version"></span><span class="glyphicon glyphicon-triangle-right"></span></h5></div>
+            <div class="col-sm-2"><h5>Edit: <a href ng-click="add_tools_previous_clicked()"><span class="glyphicon glyphicon-triangle-left"></span></a><span ng-bind="tool_current_version"></span><a href ng-click="add_tools_next_clicked()"><span class="glyphicon glyphicon-triangle-right"></span></a></h5></div>
 
             <label class="col-sm-1 control-label" for="textinput">Version</label>
             <div class="col-sm-2">
-              <input id="tool_version" type="text" placeholder="" class="form-control" name="tool_version" ng-model="tool_version_model" >
+              <input id="tool_version" type="text" placeholder="" class="form-control" name="tool_version" ng-model="tool_version_model" ng-disabled="add_tool_dis_table_clicked">
             </div>  
 
             <label class="col-sm-1 control-label">System</label>
 			<div class="col-sm-2">
 
-				<select id="system-select" multiple="multiple" ng-model="tool_system_model">
-				    <optgroup label="Ubuntu">
+				<select id="system-select" multiple="multiple" ng-model="tool_system_model" ng-disabled="add_tool_dis_table_clicked">
+				    <optgroup label="Ubuntu" >
 				        <option value="Ubuntu_14_04">14.04</option>
 				        <option value="Ubuntu_16_04">16.04</option>
 				    </optgroup>
@@ -52,14 +52,14 @@
           <div class="form-group">
           	<label class="col-sm-2 control-label" for="textinput">Link</label>
           	<div class="col-sm-10">
-              <input id="tool_url" type="text" placeholder="" class="form-control" name="tool_url" ng-model="tool_url_model" >
+              <input id="tool_url" type="text" placeholder="" class="form-control" name="tool_url" ng-model="tool_url_model" ng-disabled="add_tool_dis_table_clicked">
             </div> 
           </div>
 
           <div class="form-group">
           	<label class="col-sm-2 control-label" for="textinput">Description</label>
           	<div class="col-sm-10">
-          		<textarea id="tool_description" class="form-control" name="tool_description" placeholder="Insert a description for this tool" rows="5" ng-model="tool_description_model"></textarea>
+          		<textarea id="tool_description" class="form-control" name="tool_description" placeholder="Insert a description for this tool" rows="5" ng-model="tool_description_model" ng-disabled="add_tool_dis_table_clicked"></textarea>
           	</div>
           </div>
 
@@ -85,8 +85,8 @@
               </div>
             </div>
             <div class="col-sm-2">
-              <button class="btn btn-default" ng-click="add_tools_validate()" ng-class="{disabled : validate_button_disabled}">Validate</button>
-              <button class="btn btn-default" ng-click="add_tools_log_clear()" >Clear</button>
+              <button class="btn btn-default" ng-click="add_tools_validate()" ng-class="{disabled : validate_button_disabled || add_tool_dis_table_clicked}">Validate</button>
+              <button class="btn btn-default" ng-click="add_tools_log_clear()" ng-disabled="add_tool_dis_table_clicked">Clear</button>
             </div>
             <div class="col-sm-6">
               <div id="log_ace"></div>
@@ -103,17 +103,17 @@
           <div ng-repeat="i in add_tools_exposed_vars">
             <div class="form-group">
               <div class="col-sm-2 col-sm-offset-2">
-                <input type="text" placeholder="example: executable" class="form-control" ng-model="i[0]">
+                <input type="text" placeholder="example: executable" class="form-control" ng-model="i[0]" ng-disabled="add_tool_dis_table_clicked">
               </div>
               <div class="col-sm-2">
-                <input type="text" placeholder="example: /root/mytool" class="form-control" ng-model="i[1]">
+                <input type="text" placeholder="example: /root/mytool" class="form-control" ng-model="i[1]" ng-disabled="add_tool_dis_table_clicked">
               </div>
               <div class="col-sm-4">
-                <input type="text" placeholder="example: path of executable" class="form-control" ng-model="i[2]">
+                <input type="text" placeholder="example: path of executable" class="form-control" ng-model="i[2]" ng-disabled="add_tool_dis_table_clicked">
               </div>
               <div class="col-sm-2">
-                <button class="btn btn-default" ng-click="add_tools_add_exposed_var()">+</button>
-                <button class="btn btn-default" ng-class="{'disabled' : add_tools_exposed_vars.length==1 }" ng-disabled="add_tools_exposed_vars.length==1" ng-click="add_tools_remove_exposed_var($index)">-</button>
+                <button class="btn btn-default" ng-click="add_tools_add_exposed_var()" ng-disabled="add_tool_dis_table_clicked">+</button>
+                <button class="btn btn-default" ng-class="{'disabled' : (add_tools_exposed_vars.length==1) || add_tool_dis_table_clicked }" ng-disabled="add_tools_exposed_vars.length==1" ng-click="add_tools_remove_exposed_var($index)">-</button>
               </div>
             </div>
           </div>
@@ -122,7 +122,7 @@
           <div class="form-group">
             <label class="col-sm-2 control-label" for="textinput">References</label>
            	<div class="col-sm-10">
-           	  <div id="ta_tools_ref" class="category-container">
+           	  <div id="ta_tools_ref" class="category-container" ng-disabled="add_tool_dis_table_clicked">
            	    <input type="text" data-role="tagsinput" class="form-control">
            	  </div>
            	</div>
@@ -131,8 +131,9 @@
           <div class="form-group">
             <div class="col-sm-offset-2 col-sm-10">
               <div class="pull-right">
+                <button class="btn btn-default" ng-click="add_tools_new_version_clicked()" >New Version</button>
                 <button class="btn btn-default" ng-click="add_tools_cancel_clicked()" >Cancel</button>
-                <button class="btn btn-primary" ng-click="add_tools_save_clicked()" >Save</button>
+                <button class="btn btn-primary" ng-click="add_tools_save_clicked()" ng-disabled="add_tool_dis_table_clicked">Save</button>
               </div>
             </div>
           </div>
@@ -156,6 +157,7 @@
     	    <thead>
     	      <tr>
     	        <th data-field="name" data-filter-control="input" data-width="10%">Name</th>
+              <th data-field="current_version" data-filter-control="input" data-width="5%">Edit</th>
     	        <th data-field="url" data-filter-control="input" data-width="10%">Link</th>
     	        <th data-field="description" data-filter-control="input" data-width="20%">Description</th>
     	      </tr>
