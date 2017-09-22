@@ -466,6 +466,8 @@ app.controller('arkalos_Ctrl', function($scope, $http, $timeout) {
 				//alert('add tool success');
 				$scope.tools_created_at = response['created_at'];
 				$scope.tool_current_version = response['current_version'];
+
+				$scope.add_tools_row_clicked_ui();
 			},
 			function(response) {
 				$scope.tools_error_msg = response['error_message'];
@@ -488,6 +490,19 @@ app.controller('arkalos_Ctrl', function($scope, $http, $timeout) {
 	*/
 	$scope.add_tools_remove_exposed_var = function(index) {
 		$scope.add_tools_exposed_vars.splice(index, 1);
+	};
+
+	/*
+	* Update UI after a row is clicked in the tools table
+	*/
+	$scope.add_tools_row_clicked_ui = function() {
+		$scope.add_tool_dis_table_clicked = true;
+		$scope.add_tool_dis_new_tool = false;
+		$scope.add_tool_dis_new_version = false;
+
+		installation_ace.setReadOnly(true);
+		validate_installation_ace.setReadOnly(true);
+		$('#system-select').multiselect('disable');
 	};
 
 	/*
@@ -517,14 +532,17 @@ app.controller('arkalos_Ctrl', function($scope, $http, $timeout) {
 				validate_installation_ace.setValue(response['validate_installation']);
 				$scope.add_tools_exposed_vars = response['exposed'];
 
-				$scope.add_tool_dis_table_clicked = true;
-				$scope.add_tool_dis_new_tool = false;
-				$scope.add_tool_dis_new_version = false;
+				var t_jstree = response['jstree'];
+				$('#jstree_tools').jstree(true).settings.core.data = t_jstree;
+				$('#jstree_tools').jstree(true).refresh();
+				$timeout(function() {
+					$('#jstree_tools').jstree('select_node', $scope.tool_name_model + '||' + $scope.tool_current_version);
+				}, 500);
 
-				installation_ace.setReadOnly(true);
-				validate_installation_ace.setReadOnly(true);
-				$('#system-select').multiselect('disable');
 
+// END OF EXPERIMENTAL
+
+				$scope.add_tools_row_clicked_ui();
 			},
 			function(response) {
 				$scope.tools_error_msg = response['error_message'];
@@ -534,20 +552,6 @@ app.controller('arkalos_Ctrl', function($scope, $http, $timeout) {
 			}
 		);
 
-	};
-
-	/*
-	* Clicked previous (<) from add_tools panel
-	*/
-	$scope.add_tools_previous_clicked = function() {
-		alert('111');
-	};
-
-	/*
-	* Clicked next (>) from add_tools_panel
-	*/
-	$scope.add_tools_next_clicked = function() {
-		alert('222');
 	};
 
 	////////////////////////////////////////////////////

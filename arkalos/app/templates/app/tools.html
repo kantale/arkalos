@@ -12,12 +12,18 @@
         <fieldset>
           <legend>Tools/Data</legend>
           <div class="form-group">
+            <label class="col-sm-2 control-label">Edits</label>
+            <div class="col-sm-10">
+              <div id="jstree_tools"></div>
+            </div>
+          </div>
+          <div class="form-group">
 
             <label class="col-sm-2 control-label" for="textinput">Name</label>
             <div class="col-sm-2">
               <input id="tool_name" type="text" placeholder="" class="form-control" name="tool_name" ng-model="tool_name_model" ng-disabled=" add_tool_dis_table_clicked || add_tool_dis_new_version ">
             </div>
-            <div class="col-sm-2"><h5>Edit: <a href ng-click="add_tools_previous_clicked()"><span class="glyphicon glyphicon-triangle-left"></span></a><span ng-bind="tool_current_version"></span><a href ng-click="add_tools_next_clicked()"><span class="glyphicon glyphicon-triangle-right"></span></a></h5></div>
+            <div class="col-sm-2"><h5>Edit: <span ng-bind="tool_current_version"></span></h5></div>
 
             <label class="col-sm-1 control-label" for="textinput">Version</label>
             <div class="col-sm-2">
@@ -25,10 +31,11 @@
             </div>  
 
             <label class="col-sm-1 control-label">System</label>
-			<div class="col-sm-2">
 
-				<select id="system-select" multiple="multiple" ng-model="tool_system_model" ng-disabled="add_tool_dis_table_clicked">
-				    <optgroup label="Ubuntu" >
+            <div class="col-sm-2">
+
+				    <select id="system-select" multiple="multiple" ng-model="tool_system_model" ng-disabled="add_tool_dis_table_clicked">
+				      <optgroup label="Ubuntu" >
 				        <option value="Ubuntu_14_04">14.04</option>
 				        <option value="Ubuntu_16_04">16.04</option>
 				    </optgroup>
@@ -37,17 +44,17 @@
 				        <option value="Debian_8">8 (Jessie)</option>
 				        <option value="Debian_9">9 (Stretch)</option>
 				    </optgroup>
-				</select>
+				  </select>
 
-			</div>
-          </div>
+			    </div>
+        </div>
 
-          <div class="form-group">
-          	<label class="col-sm-2 control-label" for="textinput">User</label>
-          	<div class="col-sm-2"><h5><span ng-bind="tools_username"></span></h5></div>
-          	<label class="col-sm-2 col-sm-offset-1 control-label" for="textinput">Created At</label>
-          	<div class="col-sm-2"><h5><span ng-bind="tools_created_at"></span></h5></div>
-          </div>
+        <div class="form-group">
+          <label class="col-sm-2 control-label" for="textinput">User</label>
+          <div class="col-sm-2"><h5><span ng-bind="tools_username"></span></h5></div>
+          <label class="col-sm-2 col-sm-offset-1 control-label" for="textinput">Created At</label>
+          <div class="col-sm-2"><h5><span ng-bind="tools_created_at"></span></h5></div>
+        </div>
 
           <div class="form-group">
           	<label class="col-sm-2 control-label" for="textinput">Link</label>

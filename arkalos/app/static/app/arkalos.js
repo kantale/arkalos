@@ -82,4 +82,20 @@ $('#tools_table').on('click-row.bs.table', function (e, row, $element) {
 	});
 });
 
+// Jstree
+$('#jstree_tools').jstree();
+
+$('#jstree_tools').on('select_node.jstree', function(e, data){
+//	console.log(data);
+//	console.log(data.node.original.current_version);
+	if (data.event === undefined) {}
+	else {
+		angular.element($('#tools_table')).scope().$apply(function(){
+			row = {'name': data.node.original.name, 'current_version': data.node.original.current_version};
+			angular.element($('#tools_table')).scope().tools_table_row_clicked(row);
+		});
+	}
+
+});
+
 });

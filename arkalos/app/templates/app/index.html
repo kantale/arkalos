@@ -20,6 +20,9 @@
   <link rel="stylesheet" href="/static/app/arkalos.css">
   <script type="text/javascript" src="/static/app/ace-builds-1.2.7/src-noconflict/ace.js"></script>
 
+  {% if include_static %}<link rel="stylesheet" href="static/app/jstree/vakata-jstree-a6a0d0d/dist/themes/default/style.min.css" />{% else %}<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/jstree/3.2.1/themes/default/style.min.css" />{% endif %}
+  {% if include_static %}<script src="static/app/jstree/vakata-jstree-a6a0d0d/dist/jstree.min.js"></script>{% else %}<script src="https://cdnjs.cloudflare.com/ajax/libs/jstree/3.3.4/jstree.min.js"></script>{% endif %}
+
   {% if include_static %}<script src="/static/app/angular.min.js"></script>{% else %}<script src="https://ajax.googleapis.com/ajax/libs/angularjs/1.6.4/angular.min.js"></script>{% endif %}
   <title>Arkalos</title>
 </head>

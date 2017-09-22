@@ -223,17 +223,52 @@ def get_maximum_current_version(model, name):
     '''
     Return the next available current_version
     '''
-    try:
-        model.objects.get(name=name)
-    except ObjectDoesNotExist:
-        return 1
+
 
     max_entry = model.objects.filter(name=name).aggregate(Max('current_version'))
+
+    if max_entry['current_version__max'] is None:
+        return 1
+
     assert type(max_entry) is dict
     assert len(max_entry) == 1
 
     return max_entry['current_version__max'] + 1
 
+def build_jstree(model, name):
+    '''
+    Take an entry that has a previous_version and current_version
+    Build a jstree compatible structure 
+    '''
+
+    index = {}
+
+    def node(o):
+        current_version = o.current_version
+        ret = {
+            'id': o.name + sep + str(o.current_version), 
+            'text': o.name + ' ' + str(o.current_version), 
+            'children': [],
+            'current_version': o.current_version,
+            'name': o.name
+            }
+
+        index[current_version] = ret
+        return ret
+
+    ret = []
+    all_objects = model.objects.filter(name=name).order_by("current_version")
+
+    ret.append(node(all_objects[0]))
+
+    for o in all_objects[1:]:
+        previous_version = o.previous_version
+        this_node = node(o)
+        index[previous_version]['children'].append(this_node)
+
+    #print (simplejson.dumps(ret))
+
+    return ret
 
 
 ###########################################################################
@@ -429,9 +464,11 @@ def get_tools(request, **kwargs):
 
     bindings = {
         'name' : 'name',
+        #'current_version': lambda entry: '{} -- {}'.format(entry.current_version, entry.previous_version),
         'current_version': 'current_version',
         'url': lambda entry : '<a href="{}" target="_blank">{}</a>'.format(entry.url, entry.url),
-        'description': 'description',
+        #'description': 'description',
+        'description': lambda entry: '{} {} -- {}'.format(entry.description, entry.current_version, entry.previous_version),
     }
 
     return serve_boostrap_table(Tools, bindings, 'name', **kwargs)
@@ -453,6 +490,8 @@ def get_tools_ui(request, **kwargs):
     if not len(exposed):
         exposed = [['', '', '']]
 
+    jstree = build_jstree(Tools, tool.name)
+
     ret = {
         'name': tool.name,
         'current_version': current_version,
@@ -465,7 +504,9 @@ def get_tools_ui(request, **kwargs):
         'installation': tool.installation,
         'validate_installation': tool.validate_installation,
         'exposed': exposed,
+        'jstree': jstree,
     }
+
 
     return success(ret)
 
