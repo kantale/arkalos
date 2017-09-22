@@ -82,6 +82,20 @@ $('#tools_table').on('click-row.bs.table', function (e, row, $element) {
 	});
 });
 
+$('#tools_table').on('expand-row.bs.table', function (e, index, row, $detail) {
+	var this_id = "tools_table_expand_" + index ;
+	$detail.html('Loading tree...<div id="' + this_id + '"></div><script>$("#' + this_id + '").jstree();</script>');
+
+	//$scope.tools_create_jstree = function(name, jstree_id) 
+
+	//console.log(row);
+
+	angular.element($('#tools_table')).scope().$apply(function(){
+		angular.element($('#tools_table')).scope().tools_create_jstree(row['name'], this_id);
+	});
+
+});
+
 // Jstree
 $('#jstree_tools').jstree();
 
@@ -98,4 +112,15 @@ $('#jstree_tools').on('select_node.jstree', function(e, data){
 
 });
 
+
+
+
 });
+
+//function tools_table_detailFormatter(index, row) {
+//	console.log(index);
+//	console.log(row);
+//
+//	return '<h2>AAAA</h2>';
+//};
+

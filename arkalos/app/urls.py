@@ -13,6 +13,7 @@ urlpatterns = [
     url(r'^get_tools/$', views.get_tools, name='get_tools'),
     url(r'^get_tools_ui/$', views.get_tools_ui, name='get_tools_ui'),
     url(r'^add_tool/$', views.add_tool, name='add_tool'),
+    url(r'^jstree_tool/$', views.jstree_tool, name='jstree_tool'),
 
 ]
 

@@ -9,7 +9,7 @@ from django.shortcuts import redirect
 from django.core.validators import URLValidator # https://stackoverflow.com/questions/7160737/python-how-to-validate-a-url-in-python-malformed-or-not 
 from django.core.exceptions import ValidationError, ObjectDoesNotExist
 
-from django.db.models import Max
+from django.db.models import Max, Count
 
 from app.models import Reference, Tools
 
@@ -170,9 +170,40 @@ def bootstrap_table_format_field(entry, value):
     '''
 
     if type(value) is str:
-        return getattr(entry, value)
+        if type(entry) is dict:
+            return entry[value]
+        else:
+            return getattr(entry, value)
     elif callable(value):
         return value(entry)
+
+def serve_boostrap_table2(model, count_f, query_f, bindings, **kwargs):
+    '''
+    count_f = Tools.objects.values('name', 'url').annotate(Count('name')).count()
+    query_f = Tools.objects.values('name', 'url').annotate(Count('name'))
+    '''
+
+    count = count_f()
+
+    order = kwargs['order'] 
+    offset = kwargs['offset']
+    limit = kwargs['limit']
+
+    from_offset = int(offset)
+    to_offset = from_offset + int(limit)
+
+    if 'filter' in kwargs:
+        # "read" the filter
+        filter_ = kwargs['filter']
+        filter_ = simplejson.loads(filter_)
+    else:
+        querySet = query_f()
+
+    ret = {'total': count}
+    ret['rows'] = [ {k: bootstrap_table_format_field(entry, v) for k, v in bindings.items()} for entry in querySet]
+
+    json = simplejson.dumps(ret)
+    return HttpResponse(json, content_type='application/json')
 
 def serve_boostrap_table(model, bindings, order_by, **kwargs):
     '''
@@ -180,15 +211,9 @@ def serve_boostrap_table(model, bindings, order_by, **kwargs):
     '''
     count = model.objects.count()
 
-    #print ('Count:', count)
-
     order = kwargs['order'] 
     offset = kwargs['offset']
     limit = kwargs['limit']
-
-    #print ('order:', order)
-    #print ('offset:', offset)
-    #print ('limit:', limit)
 
     from_offset = int(offset)
     to_offset = from_offset + int(limit)
@@ -197,8 +222,6 @@ def serve_boostrap_table(model, bindings, order_by, **kwargs):
         filter_ = kwargs['filter']
         filter_ = simplejson.loads(filter_)
         filter_ = { bindings[k] + '__icontains':v for k,v in filter_.items()}
-
-        #print ('filter_:', filter_)
 
         querySet = model.objects.filter(**filter_)
         count = querySet.count()
@@ -460,18 +483,34 @@ def reference_suggestions(request, **kwargs):
 def get_tools(request, **kwargs):
     '''
     Serve GET Request for Tools bootstrap table
+
+
+    def serve_boostrap_table2(model, count_f, query_f, bindings, **kwargs):
+    
+    count_f = Tools.objects.values('name', 'url').annotate(Count('name')).count()
+    query_f = Tools.objects.values('name', 'url').annotate(Count('name')
     '''
 
     bindings = {
         'name' : 'name',
+        'url': lambda entry : '<a href="{}" target="_blank">{}</a>'.format(entry['url'], entry['url']),
+        'total_edits': lambda entry: entry['name__count'],
+        'description': lambda entry: ''
+
         #'current_version': lambda entry: '{} -- {}'.format(entry.current_version, entry.previous_version),
-        'current_version': 'current_version',
-        'url': lambda entry : '<a href="{}" target="_blank">{}</a>'.format(entry.url, entry.url),
+        #'current_version': 'current_version',
         #'description': 'description',
-        'description': lambda entry: '{} {} -- {}'.format(entry.description, entry.current_version, entry.previous_version),
+        #'description': lambda entry: '{} {} -- {}'.format(entry.description, entry.current_version, entry.previous_version),
     }
 
-    return serve_boostrap_table(Tools, bindings, 'name', **kwargs)
+    #return serve_boostrap_table(Tools, bindings, 'name', **kwargs)
+    return serve_boostrap_table2(
+        model = Tools,
+        count_f = lambda : Tools.objects.values('name', 'url').annotate(Count('name')).count(),
+        query_f = lambda : Tools.objects.values('name', 'url').annotate(Count('name')),
+        bindings = bindings,
+        **kwargs
+        )
 
 @has_data
 @has_error
@@ -579,6 +618,7 @@ def add_tool(request, **kwargs):
     #Add references
     new_tool.references.add(*references)
     new_tool.save()
+    jstree = build_jstree(Tools, new_tool.name)
 
     #TODO: Add dependencies
 
@@ -589,6 +629,21 @@ def add_tool(request, **kwargs):
     ret = {
         'created_at': created_at,
         'current_version': current_version,
+        'jstree': jstree
+    }
+
+    return success(ret)
+
+@has_data
+@has_error
+def jstree_tool(request, **kwargs):
+    '''
+    Get the jstree for a tool
+    '''
+
+    name = kwargs['name']
+    ret = {
+        'jstree' : build_jstree(Tools, name),
     }
 
     return success(ret)

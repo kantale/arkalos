@@ -349,6 +349,19 @@ app.controller('arkalos_Ctrl', function($scope, $http, $timeout) {
 			$scope.tools_error_msg = 'Login to add a Tool/Dataset';
 		}
 		else {
+			$('#jstree_tools').jstree(true).settings.core.data = [];
+			$('#jstree_tools').jstree(true).refresh();
+			$scope.tool_name_model = '';
+			$scope.tool_version_model = '';
+			$('#system-select').multiselect('enable');
+			$('#system-select').multiselect("deselectAll", false).multiselect("refresh");
+			$scope.tool_url_model = '';
+			$scope.tool_description_model = '';
+			$scope.add_tools_is_validated = false;
+			$scope.add_tools_exposed_vars = [['','','']];
+			$('#ta_tools_ref').tagsinput('removeAll');
+
+			$scope.tool_previous_version = 'N/A';
 			$scope.tool_current_version = 'N/A';
 			$scope.tools_created_at = 'N/A';
 			$scope.tools_username = $scope.username;
@@ -467,7 +480,7 @@ app.controller('arkalos_Ctrl', function($scope, $http, $timeout) {
 				$scope.tools_created_at = response['created_at'];
 				$scope.tool_current_version = response['current_version'];
 
-				$scope.add_tools_row_clicked_ui();
+				$scope.add_tools_row_clicked_ui(response['jstree']);
 			},
 			function(response) {
 				$scope.tools_error_msg = response['error_message'];
@@ -493,9 +506,55 @@ app.controller('arkalos_Ctrl', function($scope, $http, $timeout) {
 	};
 
 	/*
+	* Feed a jstree_id with data
+	*/
+	$scope.tools_create_jstree = function(name, jstree_id) {
+
+		$scope.ajax(
+			'jstree_tool/',
+			{
+				'name': name
+			},
+			function(response) {
+				var t_jstree = response['jstree'];
+
+				var jstree_id_jq = '#' + jstree_id;
+
+				$(jstree_id_jq).on('refresh.jstree', function() {
+					$(jstree_id_jq).jstree("open_all");
+				});
+
+				$(jstree_id_jq).on('select_node.jstree', function(e, data){
+					row = {'name': data.node.original.name, 'current_version': data.node.original.current_version};
+					$scope.tools_table_row_clicked(row);
+				});
+
+				$(jstree_id_jq).jstree(true).settings.core.data = t_jstree;
+				$(jstree_id_jq).jstree(true).refresh();
+
+
+			},
+			function(response) {
+				alert('FAIL123');
+			},
+			function(statusText) {
+				alert('FAIL3463');
+			}
+		);
+
+	};
+
+	/*
 	* Update UI after a row is clicked in the tools table
 	*/
-	$scope.add_tools_row_clicked_ui = function() {
+	$scope.add_tools_row_clicked_ui = function(t_jstree) {
+
+		$('#jstree_tools').jstree(true).settings.core.data = t_jstree;
+		$('#jstree_tools').jstree(true).refresh();
+		$timeout(function() {
+			$('#jstree_tools').jstree('select_node', $scope.tool_name_model + '||' + $scope.tool_current_version);
+		}, 500);
+
 		$scope.add_tool_dis_table_clicked = true;
 		$scope.add_tool_dis_new_tool = false;
 		$scope.add_tool_dis_new_version = false;
@@ -533,16 +592,8 @@ app.controller('arkalos_Ctrl', function($scope, $http, $timeout) {
 				$scope.add_tools_exposed_vars = response['exposed'];
 
 				var t_jstree = response['jstree'];
-				$('#jstree_tools').jstree(true).settings.core.data = t_jstree;
-				$('#jstree_tools').jstree(true).refresh();
-				$timeout(function() {
-					$('#jstree_tools').jstree('select_node', $scope.tool_name_model + '||' + $scope.tool_current_version);
-				}, 500);
 
-
-// END OF EXPERIMENTAL
-
-				$scope.add_tools_row_clicked_ui();
+				$scope.add_tools_row_clicked_ui(t_jstree);
 			},
 			function(response) {
 				$scope.tools_error_msg = response['error_message'];
