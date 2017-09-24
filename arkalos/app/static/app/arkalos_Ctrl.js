@@ -590,6 +590,15 @@ app.controller('arkalos_Ctrl', function($scope, $http, $timeout) {
 				installation_ace.setValue(response['installation']);
 				validate_installation_ace.setValue(response['validate_installation']);
 				$scope.add_tools_exposed_vars = response['exposed'];
+				
+				//Clear all tag input
+				$('#ta_tools_ref').tagsinput('removeAll');
+
+				//Add tag input entries
+				for (var item in response['references']) {
+					$('#ta_tools_ref').tagsinput('add', {value: response['references'][item], html: ''});
+				}
+
 
 				var t_jstree = response['jstree'];
 

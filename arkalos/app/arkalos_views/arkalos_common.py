@@ -463,10 +463,13 @@ def get_references(request, **kwargs):
 
 @has_data
 def reference_suggestions(request, **kwargs):
+    '''
+    Get called from tagas input
+    '''
     query = kwargs['query']
 
     querySet = Reference.objects.filter(content__icontains = query)[:10]
-    ret = [ {'value' : entry.code, 'html': entry.html} for entry in querySet]
+    ret = [ {'value' : entry.code, 'html': entry.html} for entry in querySet] # We have a html representation for each Reference
 
     json = simplejson.dumps(ret)
     return HttpResponse(json, content_type='application/json')
@@ -523,7 +526,7 @@ def get_tools_ui(request, **kwargs):
 
     tool = Tools.objects.get(name=name, current_version=current_version)
 
-    print ('System: {}'.format(tool.system))
+    #print ('System: {}'.format(tool.system))
 
     exposed = simplejson.loads(tool.exposed)
     if not len(exposed):
@@ -544,11 +547,10 @@ def get_tools_ui(request, **kwargs):
         'validate_installation': tool.validate_installation,
         'exposed': exposed,
         'jstree': jstree,
+        'references': [x.code for x in tool.references.all()]
     }
 
-
     return success(ret)
-
 
 
 @has_data
