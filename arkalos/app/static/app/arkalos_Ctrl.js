@@ -64,6 +64,7 @@ app.controller('arkalos_Ctrl', function($scope, $http, $timeout) {
 		$scope.login_error_msg = '';
 		$scope.tools_error_msg = '';
 		$scope.add_tool_show = false;
+		$scope.add_tool_table_show = false;
 		$scope.tools_show = false;
 		$scope.references_show = false;
 		$scope.references_error_msg = '';
@@ -339,6 +340,7 @@ app.controller('arkalos_Ctrl', function($scope, $http, $timeout) {
 	$scope.nav_bar_tools_clicked = function() {
 		$scope.initialize_ui();
 		$scope.tools_show = true;
+		$scope.add_tool_table_show = true;
 	};
 
 	/*
@@ -367,6 +369,7 @@ app.controller('arkalos_Ctrl', function($scope, $http, $timeout) {
 			$scope.tools_created_at = 'N/A';
 			$scope.tools_username = $scope.username;
 			$scope.add_tool_show = true;
+			$scope.add_tool_table_show = false;
 
 			var install_commands_init =	"# Insert the BASH commands that install the tool\n" +
 										"# The following tools are already installed: git, gcc, g++, make, zip, wget, curl, bzip2\n" +
@@ -385,8 +388,10 @@ app.controller('arkalos_Ctrl', function($scope, $http, $timeout) {
 			var log_ace_init = "Logs from validation process in Docker\nPress 'Validate' button to test installation script";
 
 			installation_ace.setValue(install_commands_init, 1);
+			installation_ace.setReadOnly(false);
 
 			validate_installation_ace.setValue(validate_commands_init, 1);
+			validate_installation_ace.setReadOnly(false);
 
 			log_ace.setValue(log_ace_init, 1);
 
@@ -573,6 +578,7 @@ app.controller('arkalos_Ctrl', function($scope, $http, $timeout) {
 	$scope.tools_table_row_clicked = function(row) {
 		//alert(row['name']);
 		$scope.add_tool_show = true;
+		$scope.add_tool_table_show = false;
 
 		//Get more info from server and feed them to UI
 		$scope.ajax(

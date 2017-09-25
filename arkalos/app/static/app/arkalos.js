@@ -75,16 +75,17 @@ $('#ta_tools_ref').tagsinput({
 
 //Bootstrap table
 
-$('#tools_table').on('click-row.bs.table', function (e, row, $element) {
-	angular.element($('#tools_table')).scope().$apply(function(){
-		//alert(row['url']);
-		angular.element($('#tools_table')).scope().tools_table_row_clicked(row);
-	});
-});
+// Click on row table
+//$('#tools_table').on('click-row.bs.table', function (e, row, $element) {
+//	angular.element($('#tools_table')).scope().$apply(function(){
+//		angular.element($('#tools_table')).scope().tools_table_row_clicked(row);
+//	});
+//});
 
+// Click on expanded item in row of table 
 $('#tools_table').on('expand-row.bs.table', function (e, index, row, $detail) {
 	var this_id = "tools_table_expand_" + index ;
-	$detail.html('Loading tree...<div id="' + this_id + '"></div><script>$("#' + this_id + '").jstree();</script>');
+	$detail.html('<div id="' + this_id + '"></div><script>$("#' + this_id + '").jstree();</script>');
 
 	//$scope.tools_create_jstree = function(name, jstree_id) 
 
@@ -95,6 +96,23 @@ $('#tools_table').on('expand-row.bs.table', function (e, index, row, $detail) {
 	});
 
 });
+
+// tools_dependencies_table
+$('#tools_dependencies_table').on('expand-row.bs.table', function (e, index, row, $detail) {
+	var this_id = "tools_table_dependencies_expand_" + index ;
+	$detail.html('<div id="' + this_id + '"></div><script>$("#' + this_id + '").jstree();</script>');
+
+	//$scope.tools_create_jstree = function(name, jstree_id) 
+
+	//console.log(row);
+
+	angular.element($('#tools_table')).scope().$apply(function(){
+		angular.element($('#tools_table')).scope().tools_create_jstree(row['name'], this_id);
+	});
+
+});
+
+
 
 // Jstree
 $('#jstree_tools').jstree();
