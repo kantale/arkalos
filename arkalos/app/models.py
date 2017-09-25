@@ -39,6 +39,7 @@ class Tools(models.Model):
 	references = models.ManyToManyField(Reference)
 	dependencies = models.ManyToManyField("Tools")
 	exposed = models.TextField() # JSON serialized
+	summary = models.TextField() # Summary of edit
 
 
 

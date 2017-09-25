@@ -70,6 +70,7 @@ app.controller('arkalos_Ctrl', function($scope, $http, $timeout) {
 		$scope.validate_button_disabled = false;
 		$scope.add_tools_is_validated = false;
 		$scope.add_tools_exposed_vars = [['','','']];
+		$scope.tool_summary = '';
 	};
 
 
@@ -419,6 +420,7 @@ app.controller('arkalos_Ctrl', function($scope, $http, $timeout) {
 		installation_ace.setReadOnly(false);
 		validate_installation_ace.setReadOnly(false);
 		$('#system-select').multiselect('enable');
+		$scope.tool_summary = '';
 
 	};
 
@@ -473,7 +475,8 @@ app.controller('arkalos_Ctrl', function($scope, $http, $timeout) {
 				"validate_installation": validate_installation_ace.getValue(),
 				"references": JSON.stringify(references),
 				"exposed": $scope.add_tools_exposed_vars,
-				"previous_version": $scope.tool_previous_version
+				"previous_version": $scope.tool_previous_version,
+				"summary": $scope.tool_summary,
 			},
 			function(response) {
 				//alert('add tool success');
@@ -590,6 +593,7 @@ app.controller('arkalos_Ctrl', function($scope, $http, $timeout) {
 				installation_ace.setValue(response['installation']);
 				validate_installation_ace.setValue(response['validate_installation']);
 				$scope.add_tools_exposed_vars = response['exposed'];
+				$scope.tool_summary = response['summary'];
 				
 				//Clear all tag input
 				$('#ta_tools_ref').tagsinput('removeAll');

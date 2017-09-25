@@ -547,7 +547,8 @@ def get_tools_ui(request, **kwargs):
         'validate_installation': tool.validate_installation,
         'exposed': exposed,
         'jstree': jstree,
-        'references': [x.code for x in tool.references.all()]
+        'references': [x.code for x in tool.references.all()],
+        'summary': tool.summary
     }
 
     return success(ret)
@@ -600,6 +601,7 @@ def add_tool(request, **kwargs):
     exposed = [e for e in exposed if any(e)] # Remove empty
     exposed = simplejson.dumps(exposed) # Serialize
 
+    summary = kwargs['summary']
 
     new_tool = Tools(
         user=user,
@@ -613,6 +615,7 @@ def add_tool(request, **kwargs):
         installation = installation,
         validate_installation = validate_installation,
         exposed = exposed,
+        summary = summary,
         );
 
     new_tool.save()
