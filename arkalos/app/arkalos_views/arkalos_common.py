@@ -258,6 +258,24 @@ def get_maximum_current_version(model, name):
 
     return max_entry['current_version__max'] + 1
 
+def build_jstree_tool_dependencies(tool):
+    '''
+    Build the dependency jstree of this tool
+    '''
+
+    ret = []
+
+    for dependent_tool in tool.dependencies.all():
+        ret.append({
+            'id': dependent_tool.name + sep + str(dependent_tool.current_version), 
+            'text': dependent_tool.name + ' ' + str(dependent_tool.current_version), 
+            'children': build_jstree_tool_dependencies(dependent_tool),
+            'current_version': dependent_tool.current_version,
+            'name': dependent_tool.name
+        })
+
+    return ret
+
 def build_jstree(model, name):
     '''
     Take an entry that has a previous_version and current_version
@@ -533,6 +551,7 @@ def get_tools_ui(request, **kwargs):
         exposed = [['', '', '']]
 
     jstree = build_jstree(Tools, tool.name)
+    dependencies = build_jstree_tool_dependencies(tool)
 
     ret = {
         'name': tool.name,
@@ -548,7 +567,8 @@ def get_tools_ui(request, **kwargs):
         'exposed': exposed,
         'jstree': jstree,
         'references': [x.code for x in tool.references.all()],
-        'summary': tool.summary
+        'summary': tool.summary,
+        'dependencies': dependencies
     }
 
     return success(ret)

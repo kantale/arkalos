@@ -72,6 +72,7 @@ app.controller('arkalos_Ctrl', function($scope, $http, $timeout) {
 		$scope.add_tools_is_validated = false;
 		$scope.add_tools_exposed_vars = [['','','']];
 		$scope.tool_summary = '';
+		$scope.tool_dependencies = [];
 	};
 
 
@@ -609,10 +610,13 @@ app.controller('arkalos_Ctrl', function($scope, $http, $timeout) {
 					$('#ta_tools_ref').tagsinput('add', {value: response['references'][item], html: ''});
 				}
 
-
 				var t_jstree = response['jstree'];
-
 				$scope.add_tools_row_clicked_ui(t_jstree);
+
+				$scope.tool_dependencies = response['dependencies'];
+				$('#jstree_drophere').jstree(true).settings.core.data = $scope.tool_dependencies;
+				$('#jstree_drophere').jstree(true).refresh();
+
 			},
 			function(response) {
 				$scope.tools_error_msg = response['error_message'];
@@ -622,6 +626,54 @@ app.controller('arkalos_Ctrl', function($scope, $http, $timeout) {
 			}
 		);
 
+	};
+
+	/*
+	* Recursively chech 
+	* called by $scope.add_tool_dependency
+	*/
+	$scope.add_tool_dependency_rec = function(dependencies, new_dependency) {
+
+		console.log("current dependencies:");
+		console.log(dependencies);
+
+		var rec_dep = "ok";
+		if ("children" in dependencies) {
+			if (dependencies.children.length) {
+				rec_dep = $scope.add_tool_dependency_rec(dependencies.children, new_dependency);
+			}
+		}
+		if (rec_dep != "ok") {
+			return rec_dep;
+		}
+
+		for (var i in dependencies) {
+			if ((dependencies[i].name == new_dependency.name) && (dependencies[i].current_version == new_dependency.current_version)) {
+				return "This tool already exists in dependencies";
+			}
+		}
+
+		return "ok";
+	};
+
+	/*
+	* Add a new dependency to the tool/data
+	*/
+	$scope.add_tool_dependency = function(new_dependency) {
+		//$scope.tool_dependencies = [];
+
+		var ok = $scope.add_tool_dependency_rec($scope.tool_dependencies, new_dependency);
+		if (ok!="ok") {
+			$scope.tools_error_msg = ok;
+			return;
+		}
+
+		$scope.tools_error_msg = '';
+		$scope.tool_dependencies.push(new_dependency);
+
+		//Update UI
+		$('#jstree_drophere').jstree(true).settings.core.data = $scope.tool_dependencies;
+		$('#jstree_drophere').jstree(true).refresh();
 	};
 
 	////////////////////////////////////////////////////

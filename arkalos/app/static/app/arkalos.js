@@ -112,10 +112,59 @@ $('#tools_dependencies_table').on('expand-row.bs.table', function (e, index, row
 
 });
 
+//Drophere jstree
+$('#jstree_drophere').jstree();
 
+// Jstree. This is the tree on top of Tools Add/Edit
+// http://jsfiddle.net/DGAF4/517/ 
+$('#jstree_tools').jstree({
+	'core': {check_callback: true},
+	'plugins': ['dnd']
+});
+//}).on("copy_node.jstree", function () {
+//            alert("copy_node fires");
+//}).on("move_node.jstree", function () {
+//            alert("move_node fires");
+//});
 
-// Jstree
-$('#jstree_tools').jstree();
+$(document).on('dnd_move.vakata', function (e, data) {
+	var t = $(data.event.target);
+	if (t.closest('#drophere').length) {
+		data.helper.find('.jstree-icon').removeClass('jstree-er').addClass('jstree-ok');
+	}
+	else {
+		data.helper.find('.jstree-icon').removeClass('jstree-ok').addClass('jstree-er');
+	}
+});
+
+$(document).on('dnd_stop.vakata', function (e, data) {
+	var t = $(data.event.target);
+	if (t.closest('#drophere').length) {
+		//alert('ggg');
+		var tt = $(data.element).attr('id'); // plink||12_anchor
+		//console.log($(data.element));
+		//console.log(tt);
+		//$('#drophere').append(tt);
+
+		//$('#jstree_drophere').jstree(true).settings.core.data.push(tt);
+		//$('#jstree_drophere').jstree(true).refresh();
+
+		//Create new dependency
+		var tt_s = tt.split('_').slice(0,-1).join().split('||'); // Array [ "plink", "12" ]
+		var new_dependency = {
+			'id': tt_s[0] + '||' + tt_s[1],
+			'text': tt_s[0] + ' ' + tt_s[1],
+			'name': tt_s[0], 
+			'current_version': +tt_s[1],
+			'children': []
+		};
+		//console.log(new_dependency);
+
+		angular.element($('#tools_table')).scope().$apply(function(){
+			angular.element($('#tools_table')).scope().add_tool_dependency(new_dependency);
+		});
+	}
+});
 
 $('#jstree_tools').on('select_node.jstree', function(e, data){
 //	console.log(data);
