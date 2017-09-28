@@ -645,7 +645,10 @@ def add_tool(request, **kwargs):
     new_tool.save()
     jstree = build_jstree(Tools, new_tool.name)
 
-    #TODO: Add dependencies
+    #Add dependencies
+    dependencies = kwargs['dependencies']
+    dependencies_objects = [Tools.objects.get(name=dependency['name'], current_version=dependency['current_version']) for dependency in dependencies]
+    new_tool.dependencies.add(*dependencies_objects)
 
     #Get created at
     created_at = format_time(new_tool.created_at)

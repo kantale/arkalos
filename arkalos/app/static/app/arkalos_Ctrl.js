@@ -361,6 +361,13 @@ app.controller('arkalos_Ctrl', function($scope, $http, $timeout) {
 			$('#system-select').multiselect("deselectAll", false).multiselect("refresh");
 			$scope.tool_url_model = '';
 			$scope.tool_description_model = '';
+			$('#tools_dependencies_table').bootstrapTable('refresh'); //Refresh dependency TABLE
+
+			// Remove existing dependencies from the tree
+			$scope.tool_dependencies = []
+			$('#jstree_drophere').jstree(true).settings.core.data = $scope.tool_dependencies;
+			$('#jstree_drophere').jstree(true).refresh();
+
 			$scope.add_tools_is_validated = false;
 			$scope.add_tools_exposed_vars = [['','','']];
 			$('#ta_tools_ref').tagsinput('removeAll');
@@ -483,6 +490,7 @@ app.controller('arkalos_Ctrl', function($scope, $http, $timeout) {
 				"exposed": $scope.add_tools_exposed_vars,
 				"previous_version": $scope.tool_previous_version,
 				"summary": $scope.tool_summary,
+				"dependencies": $scope.tool_dependencies
 			},
 			function(response) {
 				//alert('add tool success');
@@ -517,7 +525,7 @@ app.controller('arkalos_Ctrl', function($scope, $http, $timeout) {
 	/*
 	* Feed a jstree_id with data
 	*/
-	$scope.tools_create_jstree = function(name, jstree_id) {
+	$scope.tools_create_jstree = function(name, jstree_id, on_select) {
 
 		$scope.ajax(
 			'jstree_tool/',
@@ -533,15 +541,15 @@ app.controller('arkalos_Ctrl', function($scope, $http, $timeout) {
 					$(jstree_id_jq).jstree("open_all");
 				});
 
-				$(jstree_id_jq).on('select_node.jstree', function(e, data){
-					row = {'name': data.node.original.name, 'current_version': data.node.original.current_version};
-					$scope.tools_table_row_clicked(row);
-				});
+				if (on_select == 'tools_table_row_clicked') {
+					$(jstree_id_jq).on('select_node.jstree', function(e, data){
+						row = {'name': data.node.original.name, 'current_version': data.node.original.current_version};
+						$scope.tools_table_row_clicked(row);
+					});
+				}
 
 				$(jstree_id_jq).jstree(true).settings.core.data = t_jstree;
 				$(jstree_id_jq).jstree(true).refresh();
-
-
 			},
 			function(response) {
 				alert('FAIL123');
@@ -602,6 +610,9 @@ app.controller('arkalos_Ctrl', function($scope, $http, $timeout) {
 				$scope.add_tools_exposed_vars = response['exposed'];
 				$scope.tool_summary = response['summary'];
 				
+				//Refresh dependency table
+				$('#tools_dependencies_table').bootstrapTable('refresh'); 
+
 				//Clear all tag input
 				$('#ta_tools_ref').tagsinput('removeAll');
 

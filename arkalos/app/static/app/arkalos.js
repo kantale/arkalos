@@ -83,49 +83,56 @@ $('#ta_tools_ref').tagsinput({
 //});
 
 // Click on expanded item in row of table 
-$('#tools_table').on('expand-row.bs.table', function (e, index, row, $detail) {
+$('#tools_table')
+.on('expand-row.bs.table', function (e, index, row, $detail) {
 	var this_id = "tools_table_expand_" + index ;
 	$detail.html('<div id="' + this_id + '"></div><script>$("#' + this_id + '").jstree();</script>');
 
-	//$scope.tools_create_jstree = function(name, jstree_id) 
-
-	//console.log(row);
-
 	angular.element($('#tools_table')).scope().$apply(function(){
-		angular.element($('#tools_table')).scope().tools_create_jstree(row['name'], this_id);
+		angular.element($('#tools_table')).scope().tools_create_jstree(row['name'], this_id, on_select='tools_table_row_clicked');
 	});
 
+})
+.on('collapse-row.bs.table', function(e, index, row) {
+	var this_id = "tools_table_expand_" + index ;
+	$('#' + this_id).jstree("destroy");
 });
 
 // tools_dependencies_table
-$('#tools_dependencies_table').on('expand-row.bs.table', function (e, index, row, $detail) {
+$('#tools_dependencies_table')
+.on('expand-row.bs.table', function (e, index, row, $detail) {
 	var this_id = "tools_table_dependencies_expand_" + index ;
-	$detail.html('<div id="' + this_id + '"></div><script>$("#' + this_id + '").jstree();</script>');
-
-	//$scope.tools_create_jstree = function(name, jstree_id) 
-
-	//console.log(row);
+	//$detail.html('<div id="' + this_id + '"></div><script>$("#' + this_id + '").jstree();</script>');
+	$detail.html('<div id="' + this_id + '"></div><script>$("#' + this_id + '").jstree({"core": {check_callback: true}, "plugins": ["dnd"]});</script>');
 
 	angular.element($('#tools_table')).scope().$apply(function(){
-		angular.element($('#tools_table')).scope().tools_create_jstree(row['name'], this_id);
+		angular.element($('#tools_table')).scope().tools_create_jstree(row['name'], this_id, on_select='');
 	});
 
+})
+.on('collapse-row.bs.table', function(e, index, row) {
+	var this_id = "tools_table_dependencies_expand_" + index ;
+	$('#' + this_id).jstree("destroy");
 });
 
 //Drophere jstree
 $('#jstree_drophere').jstree();
 
-// Jstree. This is the tree on top of Tools Add/Edit
+
 // http://jsfiddle.net/DGAF4/517/ 
-$('#jstree_tools').jstree({
-	'core': {check_callback: true},
-	'plugins': ['dnd']
-});
+//$('#jstree_tools').jstree({
+//	'core': {check_callback: true},
+//	'plugins': ['dnd']
+//});
 //}).on("copy_node.jstree", function () {
 //            alert("copy_node fires");
 //}).on("move_node.jstree", function () {
 //            alert("move_node fires");
 //});
+
+// Jstree. This is the tree on top of Tools Add/Edit
+$('#jstree_tools').jstree();
+
 
 $(document).on('dnd_move.vakata', function (e, data) {
 	var t = $(data.event.target);
