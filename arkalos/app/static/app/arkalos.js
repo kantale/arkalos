@@ -118,7 +118,19 @@ $('#tools_dependencies_table')
 //Drophere jstree
 $('#jstree_drophere').jstree({
 	"core": {check_callback: true},
-	"plugins": ["dnd"]
+	"plugins": ["dnd"],
+	"dnd": {
+		"is_draggable": function (node) {
+
+			var ret = false;
+			angular.element($('#tools_table')).scope().$apply(function(){
+				ret = !angular.element($('#tools_table')).scope().add_tool_dis_table_clicked;
+			});
+			return ret;
+
+
+        }
+	}
 });
 
 
@@ -140,7 +152,7 @@ $('#jstree_tools').jstree();
 $(document).on('dnd_move.vakata', function (e, data) {
 	var t = $(data.event.target);
 	var tt = $(data.element).attr('id'); // plink||12_anchor
-	console.log(tt);
+	//console.log(tt);
 
 	var tt_s = tt.split('_').slice(0,-1).join().split('||'); // Array [ "plink", "12" ]
 
@@ -210,10 +222,7 @@ $('#jstree_tools').on('select_node.jstree', function(e, data){
 
 });
 
-
-
-
-});
+}); //document.ready()
 
 //function tools_table_detailFormatter(index, row) {
 //	console.log(index);

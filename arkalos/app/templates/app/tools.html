@@ -75,7 +75,7 @@
             <div class="col-sm-8">
               <div class="row">
                 <div class="col-sm-12">
-                  <button class="btn btn-default">Edit Dependencies</button>
+                  <button class="btn btn-default" ng-disabled="add_tool_dis_table_clicked">Add Dependencies</button>
                 </div>
               </div>
               <div class="row">
@@ -194,7 +194,7 @@
           <div class="form-group">
             <div class="col-sm-offset-2 col-sm-10">
               <div class="pull-right">
-                <button class="btn btn-default" ng-click="add_tools_new_version_clicked()" ng-disabled="add_tool_dis_new_tool">New Version</button>
+                <button class="btn btn-default" ng-click="add_tools_new_version_clicked()" ng-disabled="add_tool_dis_new_tool || add_tool_dis_new_version">New Version</button>
                 <button class="btn btn-default" ng-click="add_tools_cancel_clicked()" >Cancel</button>
                 <button class="btn btn-primary" ng-click="add_tools_save_clicked()" ng-disabled="add_tool_dis_table_clicked">Save</button>
               </div>
