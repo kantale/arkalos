@@ -276,7 +276,7 @@ def build_jstree_tool_dependencies(tool):
 
     return ret
 
-def build_jstree(model, name):
+def build_jstree(model, name, prefix=''):
     '''
     Take an entry that has a previous_version and current_version
     Build a jstree compatible structure 
@@ -284,10 +284,15 @@ def build_jstree(model, name):
 
     index = {}
 
+    if prefix:
+        prefix_to_add = prefix + sep
+    else:
+        prefix_to_add = ''
+
     def node(o):
         current_version = o.current_version
         ret = {
-            'id': o.name + sep + str(o.current_version), 
+            'id': prefix_to_add + o.name + sep + str(o.current_version), 
             'text': o.name + ' ' + str(o.current_version), 
             'children': [],
             'current_version': o.current_version,
@@ -670,8 +675,9 @@ def jstree_tool(request, **kwargs):
     '''
 
     name = kwargs['name']
+    prefix = kwargs['prefix']
     ret = {
-        'jstree' : build_jstree(Tools, name),
+        'jstree' : build_jstree(Tools, name, prefix=prefix),
     }
 
     return success(ret)

@@ -524,13 +524,15 @@ app.controller('arkalos_Ctrl', function($scope, $http, $timeout) {
 
 	/*
 	* Feed a jstree_id with data
+	* prefix : String added in id
 	*/
-	$scope.tools_create_jstree = function(name, jstree_id, on_select) {
+	$scope.tools_create_jstree = function(name, jstree_id, prefix, on_select) {
 
 		$scope.ajax(
 			'jstree_tool/',
 			{
-				'name': name
+				'name': name,
+				'prefix': prefix
 			},
 			function(response) {
 				var t_jstree = response['jstree'];
@@ -685,6 +687,26 @@ app.controller('arkalos_Ctrl', function($scope, $http, $timeout) {
 		//Update UI
 		$('#jstree_drophere').jstree(true).settings.core.data = $scope.tool_dependencies;
 		$('#jstree_drophere').jstree(true).refresh();
+	};
+
+	/*
+	* Remove a dependency
+	*/
+	$scope.remove_tool_dependency = function(dependency) {
+		var index_to_del = -1;
+		for (var index in $scope.tool_dependencies) {
+			if (($scope.tool_dependencies[index]['name'] == dependency['name']) && ($scope.tool_dependencies[index]['current_version'] == dependency['current_version'])) {
+				index_to_del = index;
+				break;
+			}
+		}
+
+		if (index_to_del > -1) {
+			$scope.tool_dependencies.splice(index_to_del, 1);
+			$('#jstree_drophere').jstree(true).settings.core.data = $scope.tool_dependencies;
+			$('#jstree_drophere').jstree(true).refresh();
+		}
+
 	};
 
 	////////////////////////////////////////////////////

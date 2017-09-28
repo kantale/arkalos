@@ -89,7 +89,7 @@ $('#tools_table')
 	$detail.html('<div id="' + this_id + '"></div><script>$("#' + this_id + '").jstree();</script>');
 
 	angular.element($('#tools_table')).scope().$apply(function(){
-		angular.element($('#tools_table')).scope().tools_create_jstree(row['name'], this_id, on_select='tools_table_row_clicked');
+		angular.element($('#tools_table')).scope().tools_create_jstree(row['name'], this_id, '1', 'tools_table_row_clicked');
 	});
 
 })
@@ -106,7 +106,7 @@ $('#tools_dependencies_table')
 	$detail.html('<div id="' + this_id + '"></div><script>$("#' + this_id + '").jstree({"core": {check_callback: true}, "plugins": ["dnd"]});</script>');
 
 	angular.element($('#tools_table')).scope().$apply(function(){
-		angular.element($('#tools_table')).scope().tools_create_jstree(row['name'], this_id, on_select='');
+		angular.element($('#tools_table')).scope().tools_create_jstree(row['name'], this_id, '2', '');
 	});
 
 })
@@ -116,7 +116,10 @@ $('#tools_dependencies_table')
 });
 
 //Drophere jstree
-$('#jstree_drophere').jstree();
+$('#jstree_drophere').jstree({
+	"core": {check_callback: true},
+	"plugins": ["dnd"]
+});
 
 
 // http://jsfiddle.net/DGAF4/517/ 
@@ -136,40 +139,61 @@ $('#jstree_tools').jstree();
 
 $(document).on('dnd_move.vakata', function (e, data) {
 	var t = $(data.event.target);
-	if (t.closest('#drophere').length) {
-		data.helper.find('.jstree-icon').removeClass('jstree-er').addClass('jstree-ok');
+	var tt = $(data.element).attr('id'); // plink||12_anchor
+	console.log(tt);
+
+	var tt_s = tt.split('_').slice(0,-1).join().split('||'); // Array [ "plink", "12" ]
+
+	if (tt_s[0] == '2') { //We are moving an item from the dependency TABLE
+		if (t.closest('#drophere').length) {
+			data.helper.find('.jstree-icon').removeClass('jstree-er').addClass('jstree-ok');
+		}
+		else {
+			data.helper.find('.jstree-icon').removeClass('jstree-ok').addClass('jstree-er');
+		}
 	}
-	else {
-		data.helper.find('.jstree-icon').removeClass('jstree-ok').addClass('jstree-er');
+	if (tt_s[0] == '3') { //We are moving an item from the dependecy JSTREE
+		if (t.closest('#dropheredelete').length) {
+			data.helper.find('.jstree-icon').removeClass('jstree-er').addClass('jstree-ok');
+		}
+		else {
+			data.helper.find('.jstree-icon').removeClass('jstree-ok').addClass('jstree-er');
+		}		
 	}
 });
 
 $(document).on('dnd_stop.vakata', function (e, data) {
 	var t = $(data.event.target);
-	if (t.closest('#drophere').length) {
-		//alert('ggg');
-		var tt = $(data.element).attr('id'); // plink||12_anchor
-		//console.log($(data.element));
-		//console.log(tt);
-		//$('#drophere').append(tt);
+	var tt = $(data.element).attr('id'); // 2||plink||12_anchor
+	var tt_s = tt.split('_').slice(0,-1).join().split('||'); // Array [ "2", "plink", "12" ]
 
-		//$('#jstree_drophere').jstree(true).settings.core.data.push(tt);
-		//$('#jstree_drophere').jstree(true).refresh();
+	if (tt_s[0] == '2') { //We are moving an item from the dependency TABLE
 
-		//Create new dependency
-		var tt_s = tt.split('_').slice(0,-1).join().split('||'); // Array [ "plink", "12" ]
-		var new_dependency = {
-			'id': tt_s[0] + '||' + tt_s[1],
-			'text': tt_s[0] + ' ' + tt_s[1],
-			'name': tt_s[0], 
-			'current_version': +tt_s[1],
-			'children': []
-		};
-		//console.log(new_dependency);
 
-		angular.element($('#tools_table')).scope().$apply(function(){
-			angular.element($('#tools_table')).scope().add_tool_dependency(new_dependency);
-		});
+		if (t.closest('#drophere').length) {
+
+			//Create new dependency
+			var new_dependency = {
+				'id': '3' + '||' + tt_s[1] + '||' + tt_s[2],
+				'text': tt_s[1] + ' ' + tt_s[2], //TODO: Copy from $(data.element).attr('text');
+				'name': tt_s[1], 
+				'current_version': +tt_s[2],
+				'children': []
+			};
+			//console.log(new_dependency);
+
+			angular.element($('#tools_table')).scope().$apply(function(){
+				angular.element($('#tools_table')).scope().add_tool_dependency(new_dependency);
+			});
+		}
+	}
+	if (tt_s[0] == '3') { //We are moving an item from the dependecy JSTREE 
+		if (t.closest('#dropheredelete').length) {
+			//console.log('DELETEIT!');
+			angular.element($('#tools_table')).scope().$apply(function(){
+				angular.element($('#tools_table')).scope().remove_tool_dependency({'name': tt_s[1], 'current_version': +tt_s[2]});
+			});
+		}
 	}
 });
 
