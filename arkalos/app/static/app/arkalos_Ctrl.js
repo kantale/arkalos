@@ -682,12 +682,34 @@ app.controller('arkalos_Ctrl', function($scope, $http, $timeout) {
 			return;
 		}
 
-		$scope.tools_error_msg = '';
-		$scope.tool_dependencies.push(new_dependency);
+		$scope.ajax(
+			'jstree_tool_dependencies/',
+			{
+				'name': new_dependency['name'],
+				'current_version': new_dependency['current_version']
+			},
+			function(response) {
+				$scope.tools_error_msg = '';
+				var jstree = response['jstree']
+				$scope.tool_dependencies.push(jstree);
 
-		//Update UI
-		$('#jstree_drophere').jstree(true).settings.core.data = $scope.tool_dependencies;
-		$('#jstree_drophere').jstree(true).refresh();
+				console.log($scope.tool_dependencies);
+
+				//Update UI
+				$('#jstree_drophere').jstree(true).settings.core.data = $scope.tool_dependencies;
+				$('#jstree_drophere').jstree(true).refresh();
+
+			},
+			function(response) {},
+			function(statusText) {
+				$scope.tools_error_msg = statusText;
+			}
+
+		);
+
+		
+		
+
 	};
 
 	/*

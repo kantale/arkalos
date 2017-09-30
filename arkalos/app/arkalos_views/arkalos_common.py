@@ -258,23 +258,29 @@ def get_maximum_current_version(model, name):
 
     return max_entry['current_version__max'] + 1
 
-def build_jstree_tool_dependencies(tool):
+def build_jstree_tool_dependencies(tool, prefix='', include_original=False):
     '''
     Build the dependency jstree of this tool
+    include_original are we including the original tool in the jstree?
     '''
 
-    ret = []
+    def node(t):
 
-    for dependent_tool in tool.dependencies.all():
-        ret.append({
-            'id': dependent_tool.name + sep + str(dependent_tool.current_version), 
-            'text': dependent_tool.name + ' ' + str(dependent_tool.current_version), 
-            'children': build_jstree_tool_dependencies(dependent_tool),
-            'current_version': dependent_tool.current_version,
-            'name': dependent_tool.name
-        })
+        ret = {
+            'id': prefix + sep + t.name + sep + str(t.current_version),
+            'text': t.name + ' ' + str(t.current_version),
+            'children': [build_jstree_tool_dependencies(x, prefix, include_original=True) for x in t.dependencies.all()] + [{'text': x[0], 'type': 'exposed'} for x in simplejson.loads(t.exposed)],
+            'current_version': t.current_version,
+            'name': t.name,
+            'type': 'tool',
+        }
 
-    return ret
+        return ret
+
+    if include_original:
+        return node(tool)
+    else:
+        return [node(dependent_tool) for dependent_tool in tool.dependencies.all()]
 
 def build_jstree(model, name, prefix=''):
     '''
@@ -556,7 +562,10 @@ def get_tools_ui(request, **kwargs):
         exposed = [['', '', '']]
 
     jstree = build_jstree(Tools, tool.name)
-    dependencies = build_jstree_tool_dependencies(tool)
+    dependencies = build_jstree_tool_dependencies(tool, prefix='3', include_original=False)
+
+    #print ('DEPENDENCIES:')
+    #print (dependencies)
 
     ret = {
         'name': tool.name,
@@ -671,7 +680,7 @@ def add_tool(request, **kwargs):
 @has_error
 def jstree_tool(request, **kwargs):
     '''
-    Get the jstree for a tool
+    AJAX backend to get the version jstree for a tool
     '''
 
     name = kwargs['name']
@@ -681,6 +690,27 @@ def jstree_tool(request, **kwargs):
     }
 
     return success(ret)
+
+@has_data
+@has_error
+def jstree_tool_dependencies(request, **kwargs):
+    '''
+    AJAX backend to get the dependency jstree for a tool 
+    '''
+
+    name = kwargs['name']
+    current_version = int(kwargs['current_version'])
+
+    tool = Tools.objects.get(name=name, current_version=current_version)
+
+    ret = {
+        'jstree': build_jstree_tool_dependencies(tool, prefix='3', include_original=True)
+    }
+
+    print(ret)
+
+    return success(ret)
+
 
 ########################################
 ####END OF TOOLS / DATA#################

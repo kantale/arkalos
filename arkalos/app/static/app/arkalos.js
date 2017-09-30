@@ -118,7 +118,7 @@ $('#tools_dependencies_table')
 //Drophere jstree
 $('#jstree_drophere').jstree({
 	"core": {check_callback: true},
-	"plugins": ["dnd"],
+	"plugins": ["dnd", "types"],
 	"dnd": {
 		"is_draggable": function (node) {
 
@@ -130,6 +130,10 @@ $('#jstree_drophere').jstree({
 
 
         }
+	},
+	"types": {
+		"tool": {"icon": "glyphicon glyphicon-flash"},
+		"exposed": {"icon" : "glyphicon glyphicon-ok"}
 	}
 });
 
@@ -186,11 +190,8 @@ $(document).on('dnd_stop.vakata', function (e, data) {
 
 			//Create new dependency
 			var new_dependency = {
-				'id': '3' + '||' + tt_s[1] + '||' + tt_s[2],
-				'text': tt_s[1] + ' ' + tt_s[2], //TODO: Copy from $(data.element).attr('text');
 				'name': tt_s[1], 
 				'current_version': +tt_s[2],
-				'children': []
 			};
 			//console.log(new_dependency);
 
