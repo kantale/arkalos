@@ -14,7 +14,8 @@
           <div class="form-group">
             <label class="col-sm-2 control-label">Edits</label>
             <div class="col-sm-10">
-              <div id="jstree_tools"></div>
+              <a href ng-click="toggle_show_jstree_tools()"><span ng-bind="show_jstree_tools ? 'Hide' : 'Show'"></span> Edit Tree</a>
+              <div id="jstree_tools" ng-show="show_jstree_tools"></div>
             </div>
           </div>
           <div class="form-group">
@@ -53,7 +54,7 @@
           <label class="col-sm-2 control-label" for="textinput">User</label>
           <div class="col-sm-2"><h5><span ng-bind="tools_username"></span></h5></div>
           <label class="col-sm-2 col-sm-offset-1 control-label" for="textinput">Created At</label>
-          <div class="col-sm-2"><h5><span ng-bind="tools_created_at"></span></h5></div>
+          <div class="col-sm-3"><h5><span ng-bind="tools_created_at"></span></h5></div>
         </div>
 
           <div class="form-group">
@@ -74,12 +75,12 @@
             <label class="col-sm-2 control-label" for="textinput">Dependencies</label>
             <div class="col-sm-8">
               <div class="row">
-                <div class="col-sm-12">
-                  <button class="btn btn-default" ng-disabled="add_tool_dis_table_clicked">Add Dependencies</button>
+                <div class="col-sm-12" ng-show="add_tool_dis_new_version || add_tool_dis_new_tool">
+                  Drug Tools/Data to Dependency Tree
                 </div>
               </div>
               <div class="row">
-                <div class="col-sm-12">
+                <div class="col-sm-12" ng-show="add_tool_dis_new_version || add_tool_dis_new_tool">
 
                   <table id="tools_dependencies_table" data-toggle="table" data-url="/get_tools/" data-detail-view="true" data-filter-control="true" data-pagination="true" data-side-pagination="server">
                     <thead>
@@ -97,7 +98,7 @@
                 </div>
               </div>
             </div>
-            <div class="col-sm-2">
+            <div ng-class="add_tool_dis_new_version || add_tool_dis_new_tool ?  'col-sm-2': 'col-sm-10'">
               <div class="row">
                 <div class="col-sm-12">
                   <strong>Dependency Tree</strong>
@@ -106,13 +107,13 @@
               <div class="row">
                 <div class="col-sm-12">
                   <div id="drophere" style="min-height: 100px;  border-style: solid; border-color: black;  border-width: 1px;">
-                    Drop Data/Tools here..<br>
+                    <div ng-show="add_tool_dis_new_version || add_tool_dis_new_tool">Drop Tools/Data here..<br></div>
                     <div id="jstree_drophere"></div>
                   </div>
                 </div>
               </div>
               <div class="row">
-                <div id="dropheredelete" class="col-sm-12">
+                <div id="dropheredelete" class="col-sm-12" ng-show="add_tool_dis_new_version || add_tool_dis_new_tool">
                   <span class="glyphicon glyphicon-trash"></span> Drop here to delete
                 </div>
               </div>

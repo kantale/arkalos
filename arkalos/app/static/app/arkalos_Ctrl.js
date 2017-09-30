@@ -73,6 +73,7 @@ app.controller('arkalos_Ctrl', function($scope, $http, $timeout) {
 		$scope.add_tools_exposed_vars = [['','','']];
 		$scope.tool_summary = '';
 		$scope.tool_dependencies = [];
+		$scope.show_jstree_tools = false;
 	};
 
 
@@ -707,6 +708,13 @@ app.controller('arkalos_Ctrl', function($scope, $http, $timeout) {
 			$('#jstree_drophere').jstree(true).refresh();
 		}
 
+	};
+
+	/*
+	* Togle jstree view of Edit histort of Tools/Data
+	*/
+	$scope.toggle_show_jstree_tools = function() {
+		$scope.show_jstree_tools = !$scope.show_jstree_tools;
 	};
 
 	////////////////////////////////////////////////////
