@@ -16,5 +16,9 @@ urlpatterns = [
     url(r'^add_tool/$', views.add_tool, name='add_tool'),
     url(r'^jstree_tool/$', views.jstree_tool, name='jstree_tool'),
     url(r'^jstree_tool_dependencies/$', views.jstree_tool_dependencies, name='jstree_tool_dependencies'),
+
+    url(r'^get_reports/$', views.get_reports, name='get_reports'),
+    url(r'^add_report/$', views.add_report, name='add_report'),
+
 ]
 

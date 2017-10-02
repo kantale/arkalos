@@ -11,7 +11,7 @@ from django.core.exceptions import ValidationError, ObjectDoesNotExist
 
 from django.db.models import Max, Count
 
-from app.models import Reference, Tools
+from app.models import Reference, Tools, Reports
 
 
 import io
@@ -532,6 +532,42 @@ def reference_suggestions(request, **kwargs):
 ###############################
 ######END OF REFERENCES########
 ###############################
+
+#################################
+#### REPORTS ####################
+#################################
+
+@has_data
+def get_reports(request, **kwargs):
+    '''
+    Serve bootstrap table for reports 
+    '''
+    bindings = {
+        'name': 'name',
+        'content': 'markdown',
+    }
+
+    return serve_boostrap_table(Reports, bindings, 'id', **kwargs)
+
+@has_data
+@has_error
+def add_report(request, **kwargs):
+
+    name = kwargs['name']
+    previous_version = kwargs['previous_version']
+    markdown = kwargs['markdown']
+    references = kwargs['references']
+
+    print (name)
+    print (previous_version)
+    print (markdown)
+    print (references)
+
+
+#################################
+#### END OF REPORTS #############
+#################################
+
 
 #################################
 ####TOOLS / DATA#################

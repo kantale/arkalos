@@ -78,6 +78,13 @@ app.controller('arkalos_Ctrl', function($scope, $http, $timeout) {
 		$scope.reports_show = false;
 		$scope.add_report_show = false;
 		$scope.reports_error_msg = '';
+		$scope.reports_show_fields = false;
+		$scope.show_report_table = true;
+
+		$scope.add_report_dis_new_version = false;
+		$scope.add_report_dis_new_report = false;
+		$scope.add_report_dis_table_clicked = false;
+		$scope.add_report_dis_init = true;
 	};
 
 
@@ -459,7 +466,7 @@ app.controller('arkalos_Ctrl', function($scope, $http, $timeout) {
 	* Clear log button clicked
 	*/
 	$scope.add_tools_log_clear = function() {
-		log_ace.setValue('',1);
+		log_ace.setValue('', 1);
 	};
 
 	/*
@@ -791,10 +798,12 @@ app.controller('arkalos_Ctrl', function($scope, $http, $timeout) {
 			function(response) {
 				counter += 1;
 				all_references = response['data'];
+				$scope.report_references = [];
 
 
 				for (var item in all_references) {
 					ret = ret.replace(new RegExp('\\[' + item + '\\]', 'g'), '[' + all_references[item].counter +']'); // https://stackoverflow.com/questions/1144783/how-to-replace-all-occurrences-of-a-string-in-javascript
+					$scope.report_references.push(item); // TODO. Save reports should be done here.
 				}
 
 				ret = ret + '\n## References\n';
@@ -822,6 +831,70 @@ app.controller('arkalos_Ctrl', function($scope, $http, $timeout) {
 	$scope.report_render = function() {
 		var md_text = report_ace.getValue();
 		$scope.process_report(md_text);
+
+	};
+
+	/*
+	* Clicked show/hide on report table
+	*/
+	$scope.toggle_show_report_table = function() {
+		$scope.show_report_table = !$scope.show_report_table;
+	};
+
+	/*
+	* Clicked "Create New" button on Reports
+	*/
+	$scope.reports_table_add_button_clicked = function() {
+
+		if ($scope.username == '') {
+			$scope.reports_error_msg = 'Login to add a report';
+			return;
+		}
+		$scope.reports_error_msg = '';
+
+		$scope.reports_show_fields = true;
+		$scope.report_name_model = '';
+		$scope.report_current_version = 'N/A';
+		$scope.reports_username = $scope.username;
+		$scope.reports_created_at = 'N/A';
+		report_ace.setValue('', 1);
+		$('#report_document').html('');
+
+		$scope.add_report_dis_new_version = false;
+		$scope.add_report_dis_new_report = true;
+		$scope.add_report_dis_table_clicked = false;
+		$scope.add_report_dis_init = false;
+
+	};
+
+	/*
+	* Clicked "Save" button on Reports
+	*/
+	$scope.add_reports_save_clicked = function() {
+		//Some sanity check
+		if ($scope.report_name_model == '') {
+			$scope.reports_error_msg = 'name cannot be empty';
+			return;
+		}
+
+		$scope.ajax(
+			'add_report/',
+			{
+				'name': $scope.report_name_model,
+				'previous_version': 'N/A',
+				'markdown': report_ace.getValue(),
+				'references': $scope.report_references
+			},
+			function(response) {
+				$scope.reports_error_msg = '';
+			},
+			function(response) {
+
+			},
+			function(statusText){
+				$scope.reports_error_msg = statusText;
+			}
+		);
 
 	};
 
