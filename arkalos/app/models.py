@@ -24,7 +24,6 @@ class Reference(models.Model):
 	created_at = models.DateTimeField(auto_now_add=True,)
 
 class Tools(models.Model):
-
 	user = models.ForeignKey(User)
 	name = models.CharField(max_length=100)
 	version = models.CharField(max_length=100)
@@ -41,5 +40,11 @@ class Tools(models.Model):
 	exposed = models.TextField() # JSON serialized
 	summary = models.TextField() # Summary of edit
 
-
-
+class Reports(models.Model):
+	user = models.ForeignKey(User)
+	name = models.CharField(max_length=100)
+	current_version = models.PositiveIntegerField()
+	previous_version = models.PositiveIntegerField(null=True)
+	created_at = models.DateTimeField(auto_now_add=True,)
+	references = models.ManyToManyField(Reference)
+	markdown = models.TextField()
