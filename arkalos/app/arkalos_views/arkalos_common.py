@@ -168,7 +168,6 @@ def bootstrap_table_format_field(entry, value):
     '''
     Formats the field of a bootstrap table. Values are taken from bidings
     '''
-
     if type(value) is str:
         if type(entry) is dict:
             return entry[value]
@@ -311,12 +310,15 @@ def build_jstree(model, name, prefix=''):
     ret = []
     all_objects = model.objects.filter(name=name).order_by("current_version")
 
-    ret.append(node(all_objects[0]))
+    #ret.append(node(all_objects[0]))
 
-    for o in all_objects[1:]:
+    for o in all_objects:
         previous_version = o.previous_version
-        this_node = node(o)
-        index[previous_version]['children'].append(this_node)
+        if previous_version is None:
+            ret.append(node(o))
+        else:
+            this_node = node(o)
+            index[previous_version]['children'].append(this_node)
 
     #print (simplejson.dumps(ret))
 
@@ -544,10 +546,19 @@ def get_reports(request, **kwargs):
     '''
     bindings = {
         'name': 'name',
-        'content': 'markdown',
+        'total_edits': lambda entry: entry['name__count'],
+        'content': lambda entry : ''
     }
 
-    return serve_boostrap_table(Reports, bindings, 'id', **kwargs)
+    #return serve_boostrap_table(Reports, bindings, 'id', **kwargs)
+
+    return serve_boostrap_table2(
+        model = Reports,
+        count_f = lambda : Reports.objects.values('name').annotate(Count('name')).count(),
+        query_f = lambda : Reports.objects.values('name').annotate(Count('name')),
+        bindings = bindings,
+        **kwargs
+        )
 
 @has_data
 @has_error
@@ -557,12 +568,43 @@ def add_report(request, **kwargs):
     previous_version = kwargs['previous_version']
     markdown = kwargs['markdown']
     references = kwargs['references']
+    user = get_user(request)
 
-    print (name)
-    print (previous_version)
-    print (markdown)
-    print (references)
+    #print (name)
+    #print (previous_version)
+    #print (markdown)
+    #print (references)
 
+    current_version = get_maximum_current_version(Reports, name)
+    previous_version = kwargs["previous_version"]
+    if previous_version == 'N/A':
+        previous_version = None
+    if current_version == 1:
+        previous_version = None
+
+    report = Reports(
+        name=name,
+        user=user,
+        current_version=current_version,
+        previous_version=previous_version,
+        markdown=markdown,
+    )
+
+    report.save()
+
+    fetched_references = [Reference.objects.get(name=x) for x in references]
+    report.references.add(*fetched_references)
+    report.save()
+
+    ret = {
+        'created_at' : format_time(report.created_at),
+        'current_version': current_version,
+        'jstree': build_jstree(Reports, report.name)
+    }
+
+    #print (ret)
+
+    return success(ret)
 
 #################################
 #### END OF REPORTS #############
@@ -676,11 +718,9 @@ def add_tool(request, **kwargs):
     name = kwargs['name']
     current_version = get_maximum_current_version(Tools, name)
     previous_version = kwargs["previous_version"]
-    if current_version == 1:
+    if previous_version == 'N/A':
         previous_version = None
-    else:
-        assert type(previous_version) is int
-        assert previous_version > 0
+
 #    else:
 #        print ('Previous version: {}'.format(previous_version))
 #        print ('Current version: {}'.format(current_version))
@@ -725,10 +765,11 @@ def add_tool(request, **kwargs):
     dependencies = kwargs['dependencies']
     dependencies_objects = [Tools.objects.get(name=dependency['name'], current_version=dependency['current_version']) for dependency in dependencies]
     new_tool.dependencies.add(*dependencies_objects)
+    new_tool.save()
 
     #Get created at
     created_at = format_time(new_tool.created_at)
-    print ('Created at: {}'.format(created_at))
+    #print ('Created at: {}'.format(created_at))
 
     ret = {
         'created_at': created_at,

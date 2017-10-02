@@ -114,10 +114,19 @@ $('#tools_dependencies_table')
 	angular.element($('#tools_table')).scope().$apply(function(){
 		angular.element($('#tools_table')).scope().tools_create_jstree(row['name'], this_id, '2', '');
 	});
-
 })
 .on('collapse-row.bs.table', function(e, index, row) {
 	var this_id = "tools_table_dependencies_expand_" + index ;
+	$('#' + this_id).jstree("destroy");
+});
+
+//reports_table
+$('#reports_table').on('expand-row.bs.table', function (e, index, row, $detail) {
+	var this_id = "reports_table_" + index;
+	$detail.html('<div id="' + this_id + '"></div><script>$("#' + this_id + '").jstree({"core": {check_callback: true}, "plugins": ["dnd"]});</script>');
+})
+.on('collapse-row.bs.table', function(e, index, row) {
+	var this_id = "reports_table_" + index ;
 	$('#' + this_id).jstree("destroy");
 });
 

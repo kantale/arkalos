@@ -806,9 +806,11 @@ app.controller('arkalos_Ctrl', function($scope, $http, $timeout) {
 					$scope.report_references.push(item); // TODO. Save reports should be done here.
 				}
 
-				ret = ret + '\n## References\n';
-				for (var index=0; index<response['total']; index++) {
-					ret = ret + (index+1) + '. ' + response['html'][index]['html'] + '\n';
+				if (response['total']>0) {
+					ret = ret + '\n## References\n';
+					for (var index=0; index<response['total']; index++) {
+						ret = ret + (index+1) + '. ' + response['html'][index]['html'] + '\n';
+					}
 				}
 
 				var md_html = markdown.makeHtml(ret);
@@ -859,6 +861,7 @@ app.controller('arkalos_Ctrl', function($scope, $http, $timeout) {
 		$scope.reports_created_at = 'N/A';
 		report_ace.setValue('', 1);
 		$('#report_document').html('');
+		$scope.report_references = [];
 
 		$scope.add_report_dis_new_version = false;
 		$scope.add_report_dis_new_report = true;
@@ -881,12 +884,24 @@ app.controller('arkalos_Ctrl', function($scope, $http, $timeout) {
 			'add_report/',
 			{
 				'name': $scope.report_name_model,
-				'previous_version': 'N/A',
+				'previous_version': $scope.report_current_version,
 				'markdown': report_ace.getValue(),
 				'references': $scope.report_references
 			},
 			function(response) {
 				$scope.reports_error_msg = '';
+
+				$scope.report_current_version = response['current_version'];
+				$('#reports_table').bootstrapTable('refresh');
+
+				$scope.add_report_dis_new_version = false;
+				$scope.add_report_dis_new_report = false;
+				$scope.add_report_dis_table_clicked = true;
+				$scope.add_report_dis_init = false;
+
+				report_ace.setReadOnly(true);
+
+
 			},
 			function(response) {
 
@@ -895,6 +910,17 @@ app.controller('arkalos_Ctrl', function($scope, $http, $timeout) {
 				$scope.reports_error_msg = statusText;
 			}
 		);
+
+	};
+
+	/*
+	* Clicked "New Version" in reports
+	*/
+	$scope.add_reports_new_version_clicked = function() {
+		$scope.add_report_dis_new_version = true;
+		$scope.add_report_dis_new_report = false;
+		$scope.add_report_dis_table_clicked = false;
+		$scope.add_report_dis_init = false;
 
 	};
 
