@@ -74,6 +74,10 @@ app.controller('arkalos_Ctrl', function($scope, $http, $timeout) {
 		$scope.tool_summary = '';
 		$scope.tool_dependencies = [];
 		$scope.show_jstree_tools = false;
+
+		$scope.reports_show = false;
+		$scope.add_report_show = false;
+		$scope.reports_error_msg = '';
 	};
 
 
@@ -742,6 +746,89 @@ app.controller('arkalos_Ctrl', function($scope, $http, $timeout) {
 	////////////////////////////////////////////////////
 	//////////END OF TOOLS / DATA //////////////////////
 	////////////////////////////////////////////////////
+
+	/////////////////////////////////////////////////////
+	///////////// REPORTS ///////////////////////////////
+	/////////////////////////////////////////////////////
+
+	/*
+	* Clicked "References" from navbar
+	*/
+	$scope.nav_bar_reports_clicked = function() {
+		$scope.initialize_ui();
+		$scope.reports_show = true;
+		$scope.add_report_show = true;
+	};
+
+	/*
+	* Add references to report
+	*/
+	$scope.process_report = function(report) {
+
+		var all_references = {};
+		var counter = 0;
+		$scope.reports_error_msg = '';
+		var ret = report;
+
+		var re = /\[([a-zA-Z0-9]+)\][^\(]/g;
+		do {
+			m = re.exec(report);
+			if (m) {
+				var code = m[1];
+
+				if (!(code in all_references)) {
+					all_references[code] = {};
+				}
+			}
+		} while (m);
+
+
+		$scope.ajax(
+			'get_reference/',
+			{
+				codes: Object.keys(all_references)
+			},
+			function(response) {
+				counter += 1;
+				all_references = response['data'];
+
+
+				for (var item in all_references) {
+					ret = ret.replace(new RegExp('\\[' + item + '\\]', 'g'), '[' + all_references[item].counter +']'); // https://stackoverflow.com/questions/1144783/how-to-replace-all-occurrences-of-a-string-in-javascript
+				}
+
+				ret = ret + '\n## References\n';
+				for (var index=0; index<response['total']; index++) {
+					ret = ret + (index+1) + '. ' + response['html'][index]['html'] + '\n';
+				}
+
+				var md_html = markdown.makeHtml(ret);
+				$('#report_document').html(md_html);
+
+			},
+			function(response) {},
+			function(statusText) {
+				$scope.reports_error_msg = statusText;
+			}
+		);
+
+
+
+	};
+
+	/*
+	* Clicked update in report
+	*/
+	$scope.report_render = function() {
+		var md_text = report_ace.getValue();
+		$scope.process_report(md_text);
+
+	};
+
+	/////////////////////////////////////////////////////
+	///////////// END OF REPORTS ////////////////////////
+	/////////////////////////////////////////////////////
+
 
 	/////////////////////////////////////////////////////
 	///////////// REFERENCES ////////////////////////////

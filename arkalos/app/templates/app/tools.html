@@ -11,6 +11,7 @@
       <form id="add_tool_form" class="form-horizontal" role="form" ng-show="add_tool_show">
         <fieldset>
           <legend>Tools/Data</legend>
+
           <div class="form-group">
             <label class="col-sm-2 control-label">Edits</label>
             <div class="col-sm-10">
@@ -18,8 +19,8 @@
               <div id="jstree_tools" ng-show="show_jstree_tools"></div>
             </div>
           </div>
-          <div class="form-group">
 
+          <div class="form-group">
             <label class="col-sm-2 control-label" for="textinput">Name</label>
             <div class="col-sm-2">
               <input id="tool_name" type="text" placeholder="" class="form-control" name="tool_name" ng-model="tool_name_model" ng-disabled=" add_tool_dis_table_clicked || add_tool_dis_new_version ">
@@ -106,6 +107,11 @@
               </div>
               <div class="row">
                 <div class="col-sm-12">
+                  <span class="glyphicon glyphicon-flash"></span>: Dependency <span class="glyphicon glyphicon-asterisk"></span>: Exposed variable
+                </div>
+              </div>
+              <div class="row">
+                <div class="col-sm-12">
                   <div id="drophere" style="min-height: 100px;  border-style: solid; border-color: black;  border-width: 1px;">
                     <div ng-show="add_tool_dis_new_version || add_tool_dis_new_tool">Drop Tools/Data here..<br></div>
                     <div id="jstree_drophere"></div>
@@ -151,7 +157,7 @@
           </div>
 
           <div class="form-group">
-            <label class="col-sm-2 control-label" for="textinput">Exported Values</label>
+            <label class="col-sm-2 control-label" for="textinput">Exposed Variables</label>
             <div class="col-sm-2"><h5>Name</h5></div>
             <div class="col-sm-2"><h5>Value</h5></div>
             <div class="col-sm-6"><h5>Description</h5></div>

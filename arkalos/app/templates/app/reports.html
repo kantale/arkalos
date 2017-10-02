@@ -1,0 +1,43 @@
+<div  id="reports" ng-show="reports_show" class="container">
+	<div class="row" ng-show="reports_error_msg != ''">
+		<div class="col-md-12">
+			<div class="alert alert-danger"><span ng-bind="reports_error_msg"></span></div>
+    	</div>
+  	</div>
+
+  	<div class="row">
+  		<div class="col-md-12">
+  			 <form id="add_report_form" class="form-horizontal" role="form" ng-show="add_report_show">
+  			 	<fieldset>
+  			 		<legend>Reports</legend>
+
+					<div class="form-group">
+						<label class="col-sm-2 control-label" for="textinput">Markdown</label>
+						<div class="col-sm-10">
+							<div id="report_ace"></div>
+						</div>
+          			</div> 
+
+					<div class="form-group">
+						<label class="col-sm-2 control-label" for="textinput">Document</label>
+						<div class="col-sm-10">
+							<div class="row">
+								<div class="col-md-12">
+									<button class="btn btn-default" ng-click="report_render()">Update</button>
+								</div>
+							</div>
+							<div class="row">
+								<div class="col-md-12">
+									<div id="report_document" class="well"></div>
+								</div>
+							</div>
+						</div>
+          			</div> 
+
+
+  			 	</fieldset>
+  			 </form>
+  		</div>
+  	</div>
+
+</div>

@@ -491,6 +491,32 @@ def get_references(request, **kwargs):
     return serve_boostrap_table(Reference, bindings, 'id', **kwargs)
 
 @has_data
+@has_error
+def get_reference(request, **kwargs):
+    '''
+    Get reference
+    '''
+    codes = kwargs['codes']
+
+    ret = {'data': {}, 'html': []}
+
+    c = 0
+    for code in codes:
+        try:
+            ref = Reference.objects.get(code=code)
+            c += 1
+            ret['data'][code] = {'counter': c}
+            ret['html'].append({'html': ref.html})
+
+        except ObjectDoesNotExist:
+            pass
+
+    ret['total'] = c
+
+
+    return success(ret)
+
+@has_data
 def reference_suggestions(request, **kwargs):
     '''
     Get called from tagas input

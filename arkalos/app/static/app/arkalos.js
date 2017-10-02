@@ -17,6 +17,12 @@ $(document).ready(function() {
     window.log_ace.getSession().setMode("ace/mode/text");
     window.log_ace.setReadOnly(true);
 
+	window.report_ace = ace.edit("report_ace");
+    window.report_ace.setTheme("ace/theme/github");
+    window.report_ace.getSession().setMode("ace/mode/markdown");
+
+    //Create showdown markdown converter
+    window.markdown = new showdown.Converter();
 
 // constructs the suggestion engine
 var reference_suggestions = new Bloodhound({
@@ -133,7 +139,7 @@ $('#jstree_drophere').jstree({
 	},
 	"types": {
 		"tool": {"icon": "glyphicon glyphicon-flash"},
-		"exposed": {"icon" : "glyphicon glyphicon-ok"}
+		"exposed": {"icon" : "glyphicon glyphicon-asterisk"}
 	}
 });
 
