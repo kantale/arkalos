@@ -562,6 +562,28 @@ def get_reports(request, **kwargs):
 
 @has_data
 @has_error
+def get_reports_ui(request, **kwargs):
+
+    name = kwargs['name']
+    current_version = kwargs['current_version']
+
+    report = Reports.objects.get(name=name, current_version=current_version)
+
+    username = report.user.username
+
+    ret = {
+        'name': name,
+        'current_version': current_version,
+        'username': username,
+        'created_at': format_time(report.created_at),
+        'markdown': report.markdown,
+        'summary': report.summary,
+    }
+
+    return success(ret)
+
+@has_data
+@has_error
 def add_report(request, **kwargs):
 
     name = kwargs['name']
@@ -790,6 +812,21 @@ def jstree_tool(request, **kwargs):
     prefix = kwargs['prefix']
     ret = {
         'jstree' : build_jstree(Tools, name, prefix=prefix),
+    }
+
+    return success(ret)
+
+@has_data
+@has_error
+def jstree_report(request, **kwargs):
+    '''
+    AJAX backend to get the version jstree for a tool
+    '''
+
+    name = kwargs['name']
+    prefix = kwargs['prefix']
+    ret = {
+        'jstree' : build_jstree(Reports, name, prefix=prefix),
     }
 
     return success(ret)

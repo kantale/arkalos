@@ -576,6 +576,84 @@ app.controller('arkalos_Ctrl', function($scope, $http, $timeout) {
 	};
 
 	/*
+	* Create a reports jstree. TODO: MOVE TO REPORTS SECTION!
+	*/
+	$scope.reports_create_jstree = function(name, jstree_id, prefix, on_select) {
+		$scope.ajax(
+			'jstree_report/',
+			{
+				'name': name,
+				'prefix': prefix
+			},
+			function(response) {
+				var r_jstree = response['jstree'];
+				var jstree_id_jq = '#' + jstree_id;
+
+				$(jstree_id_jq).on('refresh.jstree', function() {
+					$(jstree_id_jq).jstree("open_all");
+				});
+
+				$(jstree_id_jq).on('select_node.jstree', function(e, data){
+					row = {'name': data.node.original.name, 'current_version': data.node.original.current_version};
+					$scope.reports_table_row_clicked(row);
+				});
+
+				$(jstree_id_jq).jstree(true).settings.core.data = r_jstree;
+				$(jstree_id_jq).jstree(true).refresh();		
+
+			},
+			function(response) {
+				alert('FAIL986');
+			},
+			function(statusText) {
+				alert('FAIL7811');
+			}
+		);
+	};
+
+	/*
+	* A report was selected. TODO: MOVE TO REPORTS RECTION
+	*/
+	$scope.reports_table_row_clicked = function(row) {
+//		$scope.add_report_show = true;
+		$scope.reports_show_fields = true;
+//		$scope.show_report_table = true;
+
+		$scope.ajax(
+			'get_reports_ui/',
+			{
+				'name': row['name'],
+				'current_version': row['current_version']
+			},
+			function(response) {
+				$scope.report_name_model = response['name'];
+				$scope.report_current_version = response['current_version'];
+				$scope.reports_username = response['username'];
+				$scope.reports_created_at = response['created_at'];
+
+				report_ace.setValue(response['markdown']);
+				report_ace.setReadOnly(true);
+				$scope.report_render();
+
+				$scope.report_summary = response['summary']
+
+				$scope.add_report_dis_new_version = false;
+				$scope.add_report_dis_new_report = false;
+				$scope.add_report_dis_table_clicked = true;
+				$scope.add_report_dis_init = false;
+
+			},
+			function(response) {
+
+			},
+			function(statusText) {
+
+			}
+		);
+
+	};
+
+	/*
 	* Update UI after a row is clicked in the tools table
 	*/
 	$scope.add_tools_row_clicked_ui = function(t_jstree) {
@@ -856,10 +934,12 @@ app.controller('arkalos_Ctrl', function($scope, $http, $timeout) {
 
 		$scope.reports_show_fields = true;
 		$scope.report_name_model = '';
+		$scope.report_previous_version = 'N/A';
 		$scope.report_current_version = 'N/A';
 		$scope.reports_username = $scope.username;
 		$scope.reports_created_at = 'N/A';
 		report_ace.setValue('', 1);
+		report_ace.setReadOnly(false);
 		$('#report_document').html('');
 		$scope.report_references = [];
 
@@ -880,11 +960,18 @@ app.controller('arkalos_Ctrl', function($scope, $http, $timeout) {
 			return;
 		}
 
+		if (($scope.report_previous_version != 'N/A') && ($scope.report_summary == '')) {
+			$scope.reports_error_msg = 'Summary cannot be empty';
+			return;
+		}
+
+		$scope.reports_error_msg = '';
+
 		$scope.ajax(
 			'add_report/',
 			{
 				'name': $scope.report_name_model,
-				'previous_version': $scope.report_current_version,
+				'previous_version': $scope.report_previous_version,
 				'markdown': report_ace.getValue(),
 				'references': $scope.report_references
 			},
@@ -917,10 +1004,26 @@ app.controller('arkalos_Ctrl', function($scope, $http, $timeout) {
 	* Clicked "New Version" in reports
 	*/
 	$scope.add_reports_new_version_clicked = function() {
+
+		if ($scope.username == '') {
+			$scope.reports_error_msg = 'Login to add a new version of a report';
+			return;
+		}
+		$scope.reports_error_msg = '';
+
+
 		$scope.add_report_dis_new_version = true;
 		$scope.add_report_dis_new_report = false;
 		$scope.add_report_dis_table_clicked = false;
 		$scope.add_report_dis_init = false;
+
+		$scope.report_previous_version = $scope.report_current_version;
+		$scope.report_current_version = 'N/A';
+		$scope.reports_username = $scope.username;
+		$scope.reports_created_at = 'N/A';
+
+		report_ace.setReadOnly(false);
+
 
 	};
 

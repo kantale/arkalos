@@ -48,3 +48,4 @@ class Reports(models.Model):
 	created_at = models.DateTimeField(auto_now_add=True,)
 	references = models.ManyToManyField(Reference)
 	markdown = models.TextField()
+	summary = models.TextField() # Summary of edits

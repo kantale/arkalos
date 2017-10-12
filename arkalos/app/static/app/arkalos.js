@@ -123,7 +123,13 @@ $('#tools_dependencies_table')
 //reports_table
 $('#reports_table').on('expand-row.bs.table', function (e, index, row, $detail) {
 	var this_id = "reports_table_" + index;
-	$detail.html('<div id="' + this_id + '"></div><script>$("#' + this_id + '").jstree({"core": {check_callback: true}, "plugins": ["dnd"]});</script>');
+	$detail.html('<div id="' + this_id + '"></div><script>$("#' + this_id + '").jstree();</script>');
+
+	angular.element($('#tools_table')).scope().$apply(function(){
+		angular.element($('#tools_table')).scope().reports_create_jstree(row['name'], this_id, '1', '');
+	});
+
+
 })
 .on('collapse-row.bs.table', function(e, index, row) {
 	var this_id = "reports_table_" + index ;
