@@ -1,6 +1,7 @@
 
 
-$(document).ready(function() {
+//$(document).ready(function() {
+window.onload = function () {
 	$('#system-select').multiselect();
 
 	//Also edit CSS 
@@ -244,7 +245,31 @@ $('#jstree_tools').on('select_node.jstree', function(e, data){
 
 });
 
-}); //document.ready()
+//COLA
+
+	var width = 960, height = 500;
+
+
+	console.log('1111');
+	console.log(cola);
+	console.log('2222');
+
+	var ark_cola = cola.d3adaptor(d3)
+	        .linkDistance(100)
+	        .avoidOverlaps(true)
+	        .handleDisconnected(false)
+	        .size([width, height]);
+
+	var svg = d3.select("#d3wf").append("svg")
+	        .attr("width", width)
+	        .attr("height", height);
+
+
+        //<rect x="160" y="160" height="30" width="30" fill="red" />
+//END OF COLA
+
+//}); //document.ready()
+}; // window.onload
 
 //function tools_table_detailFormatter(index, row) {
 //	console.log(index);

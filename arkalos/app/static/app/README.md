@@ -20,3 +20,6 @@ wget https://github.com/twbs/bootstrap/releases/download/v3.3.7/bootstrap-3.3.7-
 unzip bootstrap-3.3.7-dist.zip
 
 wget https://github.com/showdownjs/showdown/archive/1.7.5.tar.gz
+
+https://github.com/d3/d3/archive/v4.11.0.tar.gz
+
