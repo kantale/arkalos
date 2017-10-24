@@ -1,6 +1,25 @@
 <div  id="workflows" ng-show="wf_show" class="container">
 	<div class="row">
 		<div class="col-sm-12">
+			<a href ng-click="toggle_show_wf_tools()"><span ng-bind="show_wf_tools ? 'Hide' : 'Show'"></span> Tools/Data</a>
+		</div>
+	</div>
+	<div class="row" ng-show="show_wf_tools">
+		<div class="col-sm-12">
+			<table id="wf_tools_table" data-toggle="table" data-url="/get_tools/" data-detail-view="true" data-filter-control="true" data-pagination="true" data-side-pagination="server">
+            	<thead>
+                	<tr>
+                    	<th data-field="name" data-filter-control="input" data-width="10%">Name</th>
+                    	<th data-field="url" data-filter-control="input" data-width="10%">Link</th>
+                    	<th data-field="total_edits" data-filter-control="input" data-width="5%">Total Edits</th>
+                    	<th data-field="description" data-filter-control="input" data-width="70%">Description</th>
+                    </tr>
+                </thead>
+            </table>
+		</div>
+	</div>
+	<div class="row">
+		<div class="col-sm-12">
 			<div id="d3wf"></div>
 		</div>
 	</div>

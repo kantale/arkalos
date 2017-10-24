@@ -137,6 +137,23 @@ $('#reports_table').on('expand-row.bs.table', function (e, index, row, $detail) 
 	$('#' + this_id).jstree("destroy");
 });
 
+
+//wf_tools_table : The table on workflows
+$('#wf_tools_table').on('expand-row.bs.table', function (e, index, row, $detail) {
+	var this_id = "wf_tools_table_" + index;
+
+	$detail.html('<div id="' + this_id + '"></div><script>$("#' + this_id + '").jstree({"core": {check_callback: true}, "plugins": ["dnd"]});</script>');
+
+	angular.element($('#tools_table')).scope().$apply(function(){
+		angular.element($('#tools_table')).scope().tools_create_jstree(row['name'], this_id, '4', '');
+	});	
+})
+.on('collapse-row.bs.table', function(e, index, row) {
+	var this_id ="wf_tools_table_" + index;
+	$('#' + this_id).jstree("destroy");
+});
+
+
 //Drophere jstree
 $('#jstree_drophere').jstree({
 	"core": {check_callback: true},
@@ -190,7 +207,7 @@ $(document).on('dnd_move.vakata', function (e, data) {
 			data.helper.find('.jstree-icon').removeClass('jstree-ok').addClass('jstree-er');
 		}
 	}
-	if (tt_s[0] == '3') { //We are moving an item from the dependecy JSTREE
+	else if (tt_s[0] == '3') { //We are moving an item from the dependecy JSTREE
 		if (t.closest('#dropheredelete').length) {
 			data.helper.find('.jstree-icon').removeClass('jstree-er').addClass('jstree-ok');
 		}
@@ -198,6 +215,15 @@ $(document).on('dnd_move.vakata', function (e, data) {
 			data.helper.find('.jstree-icon').removeClass('jstree-ok').addClass('jstree-er');
 		}		
 	}
+	else if (tt_s[0] == '4') { // We are moving an item from the workflow tool table
+		if (t.closest('#d3wf').length) {
+			data.helper.find('.jstree-icon').removeClass('jstree-er').addClass('jstree-ok');
+		}
+		else {
+			data.helper.find('.jstree-icon').removeClass('jstree-ok').addClass('jstree-er');
+		}
+	}
+
 });
 
 $(document).on('dnd_stop.vakata', function (e, data) {
@@ -222,7 +248,7 @@ $(document).on('dnd_stop.vakata', function (e, data) {
 			});
 		}
 	}
-	if (tt_s[0] == '3') { //We are moving an item from the dependecy JSTREE 
+	else if (tt_s[0] == '3') { //We are moving an item from the dependecy JSTREE 
 		if (t.closest('#dropheredelete').length) {
 			//console.log('DELETEIT!');
 			angular.element($('#tools_table')).scope().$apply(function(){
@@ -230,6 +256,14 @@ $(document).on('dnd_stop.vakata', function (e, data) {
 			});
 		}
 	}
+	else if (tt_s[0] == '4') { // We are moving an item from the workflow tool table
+		if (t.closest('#d3wf').length) {
+			angular.element($('#tools_table')).scope().$apply(function(){
+				angular.element($('#tools_table')).scope().wf_add_tool_in_graph({'name': tt_s[1], 'current_version': +tt_s[2]});
+			});
+		}
+	}
+
 });
 
 $('#jstree_tools').on('select_node.jstree', function(e, data){
@@ -262,7 +296,9 @@ $('#jstree_tools').on('select_node.jstree', function(e, data){
 
 	var svg = d3.select("#d3wf").append("svg")
 	        .attr("width", width)
-	        .attr("height", height);
+	        .attr("height", height)
+	        .style("border-style", "solid")
+	        .style("border-width", "1px");
 
 
         //<rect x="160" y="160" height="30" width="30" fill="red" />
