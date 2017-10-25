@@ -31,3 +31,19 @@
     margin-top: 5px;
     }
 
+/* D3 */
+.node {
+  stroke: #fff;
+  stroke-width: 1.5px;
+    cursor: move;
+}
+
+.label {
+    fill: black;
+    font-family: Verdana;
+    font-size: 15px;
+    text-anchor: middle;
+    cursor: move;
+}
+
+/* End of D3 */

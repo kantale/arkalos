@@ -89,7 +89,7 @@ app.controller('arkalos_Ctrl', function($scope, $http, $timeout) {
 		$scope.wf_show = false;
 		$scope.show_wf_tools = false;
 
-		$scope.wf = {"nodes": [], "links": []};
+		$scope.wf = {"nodes": [], "links": [], "groups": []};
 	};
 
 
@@ -1122,6 +1122,9 @@ app.controller('arkalos_Ctrl', function($scope, $http, $timeout) {
 	*/
 	$scope.wf_add_tool_in_graph = function(row) {
 		console.log(row);
+		$scope.wf["nodes"].push({"name": row['name'] + ' ' + row['current_version'] ,"width":60,"height":80});
+		//console.log($scope.wf);
+		update_workflow($scope.wf);
 	};
 
 	///////////////////////////////////////////////////

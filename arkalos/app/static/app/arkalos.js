@@ -284,9 +284,9 @@ $('#jstree_tools').on('select_node.jstree', function(e, data){
 	var width = 960, height = 500;
 
 
-	console.log('1111');
-	console.log(cola);
-	console.log('2222');
+	//console.log('1111');
+	//console.log(cola);
+	//console.log('2222');
 
 	var ark_cola = cola.d3adaptor(d3)
 	        .linkDistance(100)
@@ -295,11 +295,84 @@ $('#jstree_tools').on('select_node.jstree', function(e, data){
 	        .size([width, height]);
 
 	var svg = d3.select("#d3wf").append("svg")
-	        .attr("width", width)
+	        //.attr("width", width)
+	        .attr("width", '100%')
 	        .attr("height", height)
 	        .style("border-style", "solid")
 	        .style("border-width", "1px");
 
+	var main_g = svg.append("g");
+	var wf_g = svg.append("g");
+
+
+    main_g.append("rect")
+        .attr("width", '100%')
+        .attr("height", height)
+        .style("fill", "none")
+        .style("pointer-events", "all")
+        .call(d3.zoom()
+          .scaleExtent([1 / 2, 4]) // Change this to 1/20 for smaller zoom
+          .on("zoom", zoomed));
+
+      // https://bl.ocks.org/mbostock/4e3925cdc804db257a86fdef3a032a45
+      function zoomed() {
+           wf_g.attr("transform", d3.event.transform);
+      }
+
+
+	window.update_workflow = function(wf) {
+		ark_cola
+            .nodes(wf.nodes)
+            .links(wf.links)
+            .groups(wf.groups)
+            .start();
+
+        //Nodes
+        var pad = 3;
+        var node = wf_g.selectAll(".node")
+            .data(wf.nodes, function (d) {return d.name;});
+          node.exit().remove();
+
+        var nodeEnter = node.enter();
+        nodeEnter.append("rect")
+               .attr("class", "node")
+               .attr("width", function (d) { return d.width - 2 * pad; })
+               .attr("height", function (d) { return d.height - 2 * pad; })
+               .attr("rx", 5).attr("ry", 5) // Eclipse 
+               .style("fill", function (d) { return  "rgb(0,0,255)"; })
+               .call(ark_cola.drag) // 1st: Make rect drag-able 
+               .append("title")
+                  .text(function (d) { return d.name; });
+
+        var node = wf_g.selectAll(".node");
+
+        //Node labels
+        var label = wf_g.selectAll(".label")
+            .data(wf.nodes, function (d) {return d.name;});
+        label.exit().remove();
+        
+        label
+           .enter().append("text")
+            .attr("class", "label")
+            .text(function (d) { return d.name; })
+            .call(ark_cola.drag);
+
+        var label = wf_g.selectAll(".label");
+
+        ark_cola.on("tick", function () {
+        	node.attr("x", function (d) { return d.x - d.width / 2 + pad; })
+                .attr("y", function (d) { return d.y - d.width / 2 + pad; });
+
+            label.attr("x", function (d) { return d.x; })
+                 .attr("y", function (d) {
+                     var h = this.getBBox().height;
+                     return d.y + h/4;
+                 });
+
+
+        });
+
+	};
 
         //<rect x="160" y="160" height="30" width="30" fill="red" />
 //END OF COLA
