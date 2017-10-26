@@ -86,8 +86,11 @@ app.controller('arkalos_Ctrl', function($scope, $http, $timeout) {
 		$scope.add_report_dis_table_clicked = false;
 		$scope.add_report_dis_init = true;
 
+		$scope.wf_error_msg = '';
 		$scope.wf_show = false;
 		$scope.show_wf_tools = false;
+		$scope.wf_form_show = false;
+		$scope.wf_form_task_show = false;
 
 		$scope.wf = {"nodes": [], "links": [], "groups": []};
 	};
@@ -1121,10 +1124,55 @@ app.controller('arkalos_Ctrl', function($scope, $http, $timeout) {
 	* Add tool to graph
 	*/
 	$scope.wf_add_tool_in_graph = function(row) {
-		console.log(row);
+		if ($scope.username == '') {
+			$scope.wf_error_msg = 'Login to add a tool in a workflow';
+			return;
+		}
+		$scope.wf_error_msg = '';
+
+
 		$scope.wf["nodes"].push({"name": row['name'] + ' ' + row['current_version'] ,"width":60,"height":80});
 		//console.log($scope.wf);
 		update_workflow($scope.wf);
+	};
+
+	/*
+	* Button workflows add task clicked
+	*/
+	$scope.wf_add_task = function() {
+		if ($scope.username == '') {
+			$scope.wf_error_msg = 'Login to add a task in a workflow';
+			return;
+		}
+		$scope.wf_error_msg = '';
+
+		$scope.wf_form_show = false;
+		$scope.wf_form_task_show = true;
+	};
+
+	$scope.wf_save_workflow = function() {
+		if ($scope.username == '') {
+			$scope.wf_error_msg = 'Login to save a workflow';
+			return;
+		}
+
+		$scope.wf_error_msg = '';
+		$scope.wf_form_show = true;
+		$scope.wf_form_task_show = false;
+	};
+
+	/*
+	* Button on workflows add task clicked
+	*/
+	$scope.wf_add_task_clicked = function() {
+		alert('qwasfg');
+	};
+
+	/*
+	* Button on workflows cancel task clicked
+	*/
+	$scope.wf_cancel_task_clicked = function() {
+		$scope.wf_form_task_show = false;
 	};
 
 	///////////////////////////////////////////////////

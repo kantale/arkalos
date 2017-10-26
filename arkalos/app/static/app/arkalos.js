@@ -22,6 +22,10 @@ window.onload = function () {
     window.report_ace.setTheme("ace/theme/github");
     window.report_ace.getSession().setMode("ace/mode/markdown");
 
+    window.task_ace = ace.edit('task_ace');
+    window.task_ace.setTheme("ace/theme/github");
+    window.task_ace.getSession().setMode("ace/mode/markdown");
+
     //Create showdown markdown converter
     window.markdown = new showdown.Converter();
 
@@ -307,6 +311,7 @@ $('#jstree_tools').on('select_node.jstree', function(e, data){
 
     main_g.append("rect")
         .attr("width", '100%')
+        //.attr("width", width)
         .attr("height", height)
         .style("fill", "none")
         .style("pointer-events", "all")
