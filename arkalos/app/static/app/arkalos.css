@@ -55,4 +55,10 @@
     cursor: move;
 }
 
+.link {
+  stroke: #7a4e4e;
+  stroke-width: 3px;
+  stroke-opacity: 1;
+}
+
 /* End of D3 */

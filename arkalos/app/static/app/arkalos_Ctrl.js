@@ -1131,9 +1131,110 @@ app.controller('arkalos_Ctrl', function($scope, $http, $timeout) {
 		$scope.wf_error_msg = '';
 
 
-		$scope.wf["nodes"].push({"name": row['name'] + ' ' + row['current_version'] ,"width":60,"height":80});
+		$scope.wf["nodes"].push({"name": row['name'] + ' ' + row['current_version'] ,"width":60,"height":80, "type": "tool"});
 		//console.log($scope.wf);
 		update_workflow($scope.wf);
+	};
+
+	/*
+	* Get the index of a node/edge in the wf
+	*/
+	$scope.wf_get_index = function(node_edge, name) {
+
+			for (var i=0; i<$scope.wf[node_edge].length; i++) {
+				if ($scope.wf[node_edge][i]['name'] == name) {
+					return i;
+				}
+			}
+
+			return -1
+	};
+
+	/*
+	* Get the index of a node in the wf
+	*/
+	$scope.wf_get_node_index = function(name) {
+		return $scope.wf_get_index('nodes', name)
+	};
+
+	/*
+	* Get the index of an edge in the wf
+	*/
+	$scope.wf_get_edge_index = function(name) {
+		return $scope.wf_get_index('links', name)
+	};
+
+	/* 
+	* Add a node to the graph
+	*/
+	$scope.wf_add_node = function(node) {
+		//Does this node exist?
+		var index = $scope.wf_get_node_index(node.name);
+		if (index == -1) {
+			//It does not exist. Add it.
+			$scope.wf["nodes"].push(node);
+			return $scope.wf["nodes"].length-1;
+		}
+		else {
+			return index;
+		}
+	};
+
+	/*
+	* Add an edge in the graph
+	*/
+	$scope.wf_add_edge = function(node_source, node_target, edge_name) {
+
+		var edge_index = $scope.wf_get_edge_index(edge_name);
+		if (edge_index > -1) {
+			//This node exists.
+			return;
+		}
+
+		var index_source = $scope.wf_add_node(node_source);
+		var index_target = $scope.wf_add_node(node_target);
+		$scope.wf['links'].push({'source': index_source, 'target': index_target, 'name': edge_name});
+	};
+
+	/*
+	* double clicked a node in wf
+	*/
+	$scope.wf_node_double_click = function(name, type) {
+
+		if (type == 'tool') {
+
+			//Check if this tool has the dependencies node
+			var tool_dep_name = name + ' dependencies';
+			var tool_dep_name_index = $scope.wf_get_node_index(tool_dep_name);
+
+			if (tool_dep_name_index == -1) {
+				// It does not have. Add it. 
+				$scope.wf_add_edge(
+					{'name': name},
+					{"name": tool_dep_name, 'width': 60, "height": 80, "type": "tool_dep"},
+					name + " tool_dep"
+				);
+				update_workflow($scope.wf);
+			}
+
+			//Check if this tool has the exposed node
+			var tool_var_name = name + ' variables';
+			var tool_var_name_index = $scope.wf_get_node_index(tool_var_name);
+			if (tool_var_name_index == -1) {
+				$scope.wf_add_edge(
+					{'name': name},
+					{"name": tool_var_name, 'width': 60, "height": 80, "type": "tool_var"},
+					name + " tool_var"
+				);
+				update_workflow($scope.wf);
+
+			}
+
+
+
+		}
+
+
 	};
 
 	/*
@@ -1150,6 +1251,9 @@ app.controller('arkalos_Ctrl', function($scope, $http, $timeout) {
 		$scope.wf_form_task_show = true;
 	};
 
+	/*
+	* Button workflows "Save Workdlow" (under the graph) clicked
+	*/
 	$scope.wf_save_workflow = function() {
 		if ($scope.username == '') {
 			$scope.wf_error_msg = 'Login to save a workflow';

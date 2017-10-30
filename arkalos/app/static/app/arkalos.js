@@ -345,6 +345,12 @@ $('#jstree_tools').on('select_node.jstree', function(e, data){
                .attr("height", function (d) { return d.height - 2 * pad; })
                .attr("rx", 5).attr("ry", 5) // Eclipse 
                .style("fill", function (d) { return  "rgb(0,0,255)"; })
+               .on("dblclick", function(d) {
+                	//console.log(d.width);
+                	angular.element($('#tools_table')).scope().$apply(function(){
+                		angular.element($('#tools_table')).scope().wf_node_double_click(d.name, d.type);
+                	});
+              	})
                .call(ark_cola.drag) // 1st: Make rect drag-able 
                .append("title")
                   .text(function (d) { return d.name; });
@@ -364,7 +370,25 @@ $('#jstree_tools').on('select_node.jstree', function(e, data){
 
         var label = wf_g.selectAll(".label");
 
+
+		var link = wf_g.selectAll(".link")
+            .data(wf.links, function (d) {return d.name;});
+        link.exit().remove();
+        link
+          .enter().append("line")
+            .attr("class", "link");
+
+         var link = wf_g.selectAll(".link");
+
+
         ark_cola.on("tick", function () {
+
+			link.attr("x1", function (d) { return d.source.x; })
+                .attr("y1", function (d) { return d.source.y; })
+                .attr("x2", function (d) { return d.target.x; })
+                .attr("y2", function (d) { return d.target.y; });
+
+
         	node.attr("x", function (d) { return d.x - d.width / 2 + pad; })
                 .attr("y", function (d) { return d.y - d.width / 2 + pad; });
 
