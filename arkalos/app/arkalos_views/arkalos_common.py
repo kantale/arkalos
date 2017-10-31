@@ -847,7 +847,41 @@ def jstree_tool_dependencies(request, **kwargs):
         'jstree': build_jstree_tool_dependencies(tool, prefix='3', include_original=True)
     }
 
-    print(ret)
+    #print(ret)
+
+    return success(ret)
+
+@has_data
+@has_error
+def get_tool_dependencies(request, **kwargs):
+    '''
+    Return ONE LEVEL dependencies of this tool
+    '''
+
+    name = kwargs['name']
+    current_version = int(kwargs['current_version'])
+
+    tool = Tools.objects.get(name=name, current_version=current_version)
+    ret = {
+        'dependencies': [{'name': x.name, 'current_version': x.current_version} for x in tool.dependencies.all()]
+    }
+
+    return success(ret)
+
+@has_data
+@has_error
+def get_tool_variables(request, **kwargs):
+    '''
+    Return the variables of this tool
+    '''
+
+    name = kwargs['name']
+    current_version = int(kwargs['current_version'])
+
+    tool = Tools.objects.get(name=name, current_version=current_version)
+    ret = {
+        'variables': simplejson.loads(tool.exposed)
+    }
 
     return success(ret)
 

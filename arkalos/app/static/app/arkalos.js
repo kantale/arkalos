@@ -263,7 +263,7 @@ $(document).on('dnd_stop.vakata', function (e, data) {
 	else if (tt_s[0] == '4') { // We are moving an item from the workflow tool table
 		if (t.closest('#d3wf').length) {
 			angular.element($('#tools_table')).scope().$apply(function(){
-				angular.element($('#tools_table')).scope().wf_add_tool_in_graph({'name': tt_s[1], 'current_version': +tt_s[2]});
+				angular.element($('#tools_table')).scope().wf_add_tool_in_graph({'name': tt_s[1], 'current_version': +tt_s[2]}, true);
 			});
 		}
 	}
@@ -348,7 +348,7 @@ $('#jstree_tools').on('select_node.jstree', function(e, data){
                .on("dblclick", function(d) {
                 	//console.log(d.width);
                 	angular.element($('#tools_table')).scope().$apply(function(){
-                		angular.element($('#tools_table')).scope().wf_node_double_click(d.name, d.type);
+                		angular.element($('#tools_table')).scope().wf_node_double_click(d);
                 	});
               	})
                .call(ark_cola.drag) // 1st: Make rect drag-able 
