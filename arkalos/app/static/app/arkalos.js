@@ -339,12 +339,27 @@ $('#jstree_tools').on('select_node.jstree', function(e, data){
           node.exit().remove();
 
         var nodeEnter = node.enter();
-        nodeEnter.append("rect")
-               .attr("class", "node")
-               .attr("width", function (d) { return d.width - 2 * pad; })
-               .attr("height", function (d) { return d.height - 2 * pad; })
-               .attr("rx", 5).attr("ry", 5) // Eclipse 
-               .style("fill", function (d) { return  "rgb(0,0,255)"; })
+        nodeEnter.append("circle")
+        		.attr("class", "node")
+        		.attr("r", 10)
+
+//        nodeEnter.append("rect")
+//               .attr("class", "node")
+//               .attr("width", function (d) { return d.width - 2 * pad; })
+//               .attr("height", function (d) { return d.height - 2 * pad; })
+//               .attr("rx", 5).attr("ry", 5) // Eclipse 
+               //.style("fill", function (d) { return  "rgb(0,0,255)"; })
+               .style("fill", function (d) {
+               		switch (d.type) {
+               			case "tool":
+               				return "Cyan";
+               			case "variable":
+               				return "LightPink";
+               			default:
+               				return "White";
+               		} 
+               		
+               })
                .on("dblclick", function(d) {
                 	//console.log(d.width);
                 	angular.element($('#tools_table')).scope().$apply(function(){
@@ -389,13 +404,17 @@ $('#jstree_tools').on('select_node.jstree', function(e, data){
                 .attr("y2", function (d) { return d.target.y; });
 
 
-        	node.attr("x", function (d) { return d.x - d.width / 2 + pad; })
-                .attr("y", function (d) { return d.y - d.width / 2 + pad; });
+        	//node.attr("x", function (d) { return d.x - d.width / 2 + pad; })
+            //    .attr("y", function (d) { return d.y - d.width / 2 + pad; });
+
+            node.attr("cx", function(d) {return d.x;})
+            	.attr("cy", function(d) {return d.y;})
 
             label.attr("x", function (d) { return d.x; })
                  .attr("y", function (d) {
-                     var h = this.getBBox().height;
-                     return d.y + h/4;
+                     //var h = this.getBBox().height;
+                     //return d.y + h/4;
+                     return d.y - 13;
                  });
 
 

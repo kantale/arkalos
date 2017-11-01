@@ -42,22 +42,22 @@
 
 /* D3 */
 .node {
-  stroke: #fff;
+  stroke: #000;
   stroke-width: 1.5px;
-    cursor: move;
+  cursor: move;
 }
 
 .label {
     fill: black;
-    font-family: Verdana;
-    font-size: 15px;
+    font-family: Times;
+    font-size: 11px;
     text-anchor: middle;
     cursor: move;
 }
 
 .link {
-  stroke: #7a4e4e;
-  stroke-width: 3px;
+  stroke: #000;
+  stroke-width: 1px;
   stroke-opacity: 1;
 }
 
