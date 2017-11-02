@@ -1127,7 +1127,7 @@ app.controller('arkalos_Ctrl', function($scope, $http, $timeout) {
 
 		var new_node_node_name = row['name'] + ' ' + row['current_version'];
 
-		$scope.wf["nodes"].push({"name": new_node_node_name ,"width":60,"height":80, "type": "tool", "current_version": row['current_version'], "tool_name": row["name"]});
+		$scope.wf["nodes"].push({"name": new_node_node_name, "type": "tool", "current_version": row['current_version'], "tool_name": row["name"], "children": []});
 		//console.log($scope.wf);
 		if (update) {update_workflow($scope.wf);}
 	
@@ -1139,7 +1139,7 @@ app.controller('arkalos_Ctrl', function($scope, $http, $timeout) {
 	*/
 	$scope.wf_add_variable_in_graph = function(variable, row) {
 		var new_node_node_name = variable[0];
-		$scope.wf["nodes"].push({"name": new_node_node_name, "width": 60, "height": 80, "type": "variable", "current_version": row["current_version"], "tool_name": row["name"]});
+		$scope.wf["nodes"].push({"name": new_node_node_name, "type": "variable", "current_version": row["current_version"], "tool_name": row["name"], "children": []});
 		return new_node_node_name
 	};
 
@@ -1171,6 +1171,21 @@ app.controller('arkalos_Ctrl', function($scope, $http, $timeout) {
 		return $scope.wf_get_index('links', name)
 	};
 
+	/*
+	* Returns all the edge indexes that target to a specific node index
+	*/
+	$scope.wf_get_edge_index_from_targets_index = function(node_index) {
+		var ret = [];
+
+		for (var i=0; i<$scope.wf.links.length; i++) {
+			if ($scope.wf.links[i].target.index == node_index) {
+				ret.push(i);
+			}
+		}
+
+		return ret;
+	};
+
 	/* 
 	* Add a node to the graph
 	*/
@@ -1198,9 +1213,87 @@ app.controller('arkalos_Ctrl', function($scope, $http, $timeout) {
 			return;
 		}
 
+		//Add the nodes
 		var index_source = $scope.wf_add_node(node_source);
 		var index_target = $scope.wf_add_node(node_target);
+
+		//Add the children
+		$scope.wf.nodes[index_source].children.push(index_target);
+
+		//Add the edge
 		$scope.wf['links'].push({'source': index_source, 'target': index_target, 'name': edge_name});
+	};
+
+	/*
+	* Remove a node from that wf
+	*/
+	$scope.wf_remove_node_index = function(node_index) {
+
+		//Go through all links
+		for (var i=0; i<$scope.wf.links.length; i++) {
+			var current_link = $scope.wf.links[i];
+
+			if (current_link.source.index > node_index) {
+				current_link.source.index -= 1;
+			}
+			if (current_link.target.index > node_index) {
+				current_link.target.index -= 1; 
+			}
+		}
+
+		//Go through all nodes/ Alter children
+		for (var i=0; i<$scope.wf.nodes.length; i++) {
+			for (var j=0; j<$scope.wf.nodes[i].children.length; j++) {
+				if ($scope.wf.nodes[i].children[j] > node_index) {
+					$scope.wf.nodes[i].children[j] -= 1;
+				}
+			}
+		}
+
+		//Remove this node
+		$scope.wf.nodes.splice(node_index, 1);
+
+		//Remove THE ONE EDGE that links to that node
+		var edges_indexes_to_remove = $scope.wf_get_edge_index_from_targets_index(node_index);
+
+		for (var i=0; i<edges_indexes_to_remove.length; i++) {
+			$scope.wf.links.splice(edges_indexes_to_remove[i], 1);
+		}
+//		if (edges_indexes_to_remove.length > 1) {
+//			alert("THIS SHOULD NEVER HAPPEN");
+//		}
+//		if (edges_indexes_to_remove.length == 1) {
+//			$scope.wf.links.splice(edges_indexes_to_remove[0], 1);
+//		}
+
+	};
+
+	/*
+	* Remove from the graph all the children of this node
+	*/
+	$scope.wf_remove_children = function(node) {
+
+		for (var i=0; i<node.children.length; i++) {
+			var child_index = node.children[i];
+			var child_node = $scope.wf.nodes[child_index];
+
+			//Check if this child has children
+			if (child_node.children.length == 0) {
+				//It does not have any children. REMOVE IT!
+				$scope.wf_remove_node_index(child_index);
+			}
+			else {
+				//It has children
+				//Remove all the children
+				$scope.wf_remove_children(child_node);
+
+				//Remove this node
+				$scope.wf_remove_node_index(child_index)
+			}
+		} 
+
+		//All the children have been removed
+		node.children = [];
 	};
 
 	/*
@@ -1209,88 +1302,118 @@ app.controller('arkalos_Ctrl', function($scope, $http, $timeout) {
 	$scope.wf_node_double_click = function(node) {
 
 		if (node.type == 'tool') {
-
-			//Check if this tool has the dependencies node
-			var tool_dep_name = node.name + ' dependencies';
-			var tool_dep_name_index = $scope.wf_get_node_index(tool_dep_name);
-
-			if (tool_dep_name_index == -1) {
-				// It does not have. Add it. 
-				$scope.wf_add_edge(
-					{'name': node.name},
-					{"name": tool_dep_name, 'width': 60, "height": 80, "type": "tool_dep", "tool_name": node.tool_name, "current_version": node.current_version},
-					node.name + " tool_dep"
-				);
+			//Does this node has children?
+			if (node.children.length > 0) {
+				//It has children. Remove them
+				$scope.wf_remove_children(node);
+				//console.log($scope.wf);
 				update_workflow($scope.wf);
 			}
 
-			//Check if this tool has the exposed node
-			var tool_var_name = node.name + ' variables';
-			var tool_var_name_index = $scope.wf_get_node_index(tool_var_name);
-			if (tool_var_name_index == -1) {
-				$scope.wf_add_edge(
-					{'name': node.name},
-					{"name": tool_var_name, 'width': 60, "height": 80, "type": "tool_var", "tool_name": node.tool_name, "current_version": node.current_version},
-					node.name + " tool_var"
-				);
-				update_workflow($scope.wf);
+			else {
+				//Check if this tool has the dependencies node
+				var tool_dep_name = node.name + ' dependencies';
+				var tool_dep_name_index = $scope.wf_get_node_index(tool_dep_name);
 
+				if (tool_dep_name_index == -1) {
+					// It does not have. Add it. 
+					$scope.wf_add_edge(
+						{'name': node.name},
+						{"name": tool_dep_name, "type": "tool_dep", "tool_name": node.tool_name, "current_version": node.current_version, "children": []},
+						node.name + " tool_dep"
+					);
+					update_workflow($scope.wf);
+				}
+
+				//Check if this tool has the exposed node
+				var tool_var_name = node.name + ' variables';
+				var tool_var_name_index = $scope.wf_get_node_index(tool_var_name);
+				if (tool_var_name_index == -1) {
+					$scope.wf_add_edge(
+						{'name': node.name},
+						{"name": tool_var_name, "type": "tool_var", "tool_name": node.tool_name, "current_version": node.current_version, "children": []},
+						node.name + " tool_var"
+					);
+					update_workflow($scope.wf);
+
+				}
 			}
 		}
 		else if (node.type == 'tool_dep') {
-			$scope.ajax(
-				'get_tool_dependencies/',
-				{
-					'name': node.tool_name,
-					'current_version': node.current_version
-				},
-				function (response) {
-					for (var i=0; i<response['dependencies'].length; i++) {
-						var tool_name = response['dependencies'][i].name;
-						var tool_current_version = response['dependencies'][i].current_version;
-						var new_node_node_name = $scope.wf_add_tool_in_graph({'name': tool_name, 'current_version': tool_current_version}, false);
-						$scope.wf_add_edge(
-							{'name': node.name},
-							{'name': new_node_node_name},
-							node.name + ' <--> ' + new_node_node_name
-						);
-					}
-					update_workflow($scope.wf);
+			//Does this node has children?
+			if (node.children.length > 0) {
+				//It has children. Remove them
+				$scope.wf_remove_children(node);
+				//console.log($scope.wf);
+				update_workflow($scope.wf);
+			}
 
-				},
-				function (response) {
-					$scope.wf_error_msg = response['error_message'];
-				},
-				function (statusText) {
-					$scope.wf_error_msg = statusText;
-				}
-			);
+			else {			
+				$scope.ajax(
+					'get_tool_dependencies/',
+					{
+						'name': node.tool_name,
+						'current_version': node.current_version
+					},
+					function (response) {
+						for (var i=0; i<response['dependencies'].length; i++) {
+							var tool_name = response['dependencies'][i].name;
+							var tool_current_version = response['dependencies'][i].current_version;
+							var new_node_node_name = $scope.wf_add_tool_in_graph({'name': tool_name, 'current_version': tool_current_version}, false);
+							$scope.wf_add_edge(
+								{'name': node.name},
+								{'name': new_node_node_name},
+								node.name + ' <--> ' + new_node_node_name
+							);
+						}
+						update_workflow($scope.wf);
+
+					},
+					function (response) {
+						$scope.wf_error_msg = response['error_message'];
+					},
+					function (statusText) {
+						$scope.wf_error_msg = statusText;
+					}
+				);
+			}
 		}
 		else if (node.type == 'tool_var') {
-			$scope.ajax(
-				'get_tool_variables/',
-				{
-					'name': node.tool_name,
-					'current_version': node.current_version
-				},
-				function (response) {
-					for (var i=0; i<response['variables'].length; i++) {
-						var new_node_node_name = $scope.wf_add_variable_in_graph(response['variables'][i], {'name': node.tool_name, 'current_version': node.current_version});
-						$scope.wf_add_edge(
-							{'name': node.name},
-							{ 'name': new_node_node_name},
-							node.name + ' <--> ' + new_node_node_name
-						);
+			//Does this node has children?
+			if (node.children.length > 0) {
+				//It has children. Remove them
+				$scope.wf_remove_children(node);
+				//console.log($scope.wf);
+				update_workflow($scope.wf);
+			}
+
+			else {
+				//This node does not have children. Fetch them!
+				$scope.ajax(
+					'get_tool_variables/',
+					{
+						'name': node.tool_name,
+						'current_version': node.current_version
+					},
+					function (response) {
+						for (var i=0; i<response['variables'].length; i++) {
+							var new_node_node_name = $scope.wf_add_variable_in_graph(response['variables'][i], {'name': node.tool_name, 'current_version': node.current_version});
+							$scope.wf_add_edge(
+								{'name': node.name},
+								{ 'name': new_node_node_name},
+								node.name + ' <--> ' + new_node_node_name
+							);
+						}
+						update_workflow($scope.wf);
+					},
+					function (response) {
+						$scope.wf_error_msg = response['error_message'];
+					},
+					function (statusText) {
+						$scope.wf_error_msg = statusText;
 					}
-					update_workflow($scope.wf);
-				},
-				function (response) {
-					$scope.wf_error_msg = response['error_message'];
-				},
-				function (statusText) {
-					$scope.wf_error_msg = statusText;
-				}
-			);
+				);
+			}
 		}
 
 
