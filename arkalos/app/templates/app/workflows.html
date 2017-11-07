@@ -42,9 +42,33 @@
 				<fieldset>
 					<legend>Task: </legend>
 					<div class="form-group">
+						<label class="col-sm-2 control-label">Clicked Variable</label>
+
+			            <div class="col-sm-2"><h5>Name</h5></div>
+			            <div class="col-sm-2"><h5>Value</h5></div>
+			            <div class="col-sm-6"><h5>Description</h5></div>
+					</div>
+
+					<div class="form-group">
+						<div class="col-sm-2 col-sm-offset-2">
+							 <input type="text" placeholder="" class="form-control" ng-model="wf_variable_name" ng-disabled="true">
+						</div>
+						<div class="col-sm-2">
+							<input type="text" placeholder="" class="form-control" ng-model="wf_variable_value" ng-disabled="true">
+						</div>
+						<div class="col-sm-4">
+							<input type="text" placeholder="" class="form-control" ng-model="wf_variable_description" ng-disabled="true">
+						</div>
+						<div class="col-sm-2">
+							<button class="btn btn-default" ng-click="wf_import_variable()" ng-disabled="wf_variable_name == ''"><span class="glyphicon glyphicon-download"></span></button>
+						</div>
+
+					</div>
+
+					<div class="form-group">
 						<label class="col-sm-2 control-label" for="textinput">Name</label>
 						<div class="col-sm-2">
-							<input id="wf_task_name" type="text" placeholder="" class="form-control" name="wf_task_name" ng-model="wf_task_name_model">
+							<input id="wf_task_name" type="text" placeholder="" class="form-control" name="wf_task_name" ng-model="wf_task_name">
 						</div>
 					</div>
 					<div class="form-group">

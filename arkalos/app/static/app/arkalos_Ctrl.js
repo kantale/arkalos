@@ -93,6 +93,10 @@ app.controller('arkalos_Ctrl', function($scope, $http, $timeout) {
 		$scope.wf_form_task_show = false;
 
 		$scope.wf = {"nodes": [], "links": [], "groups": []};
+
+		$scope.wf_variable_name = '';
+		$scope.wf_variable_value = '';
+		$scope.wf_variable_description = '';
 	};
 
 
@@ -1106,6 +1110,13 @@ app.controller('arkalos_Ctrl', function($scope, $http, $timeout) {
 	///////////////////////////////////////////////////
 
 	/*
+	* Shortcut to update workdflow
+	*/
+	$scope.update_workflow = function() {
+		update_workflow($scope.wf);
+	};
+
+	/*
 	* Clicked the "Workflows" from navbar
 	*/
 	$scope.nav_bar_wf_clicked = function() {
@@ -1139,7 +1150,16 @@ app.controller('arkalos_Ctrl', function($scope, $http, $timeout) {
 	*/
 	$scope.wf_add_variable_in_graph = function(variable, row) {
 		var new_node_node_name = variable[0];
-		$scope.wf["nodes"].push({"name": new_node_node_name, "type": "variable", "current_version": row["current_version"], "tool_name": row["name"], "children": []});
+		$scope.wf["nodes"].push({
+			"name": new_node_node_name, 
+			"type": "variable", 
+			"current_version": row["current_version"], 
+			"tool_name": row["name"], 
+			"children": [], 
+			"variable_name": variable[0],
+			"variable_value": variable[1],
+			"variable_description": variable[2]
+		});
 		return new_node_node_name
 	};
 
@@ -1205,7 +1225,7 @@ app.controller('arkalos_Ctrl', function($scope, $http, $timeout) {
 	/*
 	* Add an edge in the graph
 	*/
-	$scope.wf_add_edge = function(node_source, node_target, edge_name) {
+	$scope.wf_add_edge = function(node_source, node_target, edge_name, update) {
 
 		var edge_index = $scope.wf_get_edge_index(edge_name);
 		if (edge_index > -1) {
@@ -1222,6 +1242,10 @@ app.controller('arkalos_Ctrl', function($scope, $http, $timeout) {
 
 		//Add the edge
 		$scope.wf['links'].push({'source': index_source, 'target': index_target, 'name': edge_name});
+
+		if (update) {
+			$scope.update_workflow();
+		}
 	};
 
 	/*
@@ -1320,7 +1344,8 @@ app.controller('arkalos_Ctrl', function($scope, $http, $timeout) {
 					$scope.wf_add_edge(
 						{'name': node.name},
 						{"name": tool_dep_name, "type": "tool_dep", "tool_name": node.tool_name, "current_version": node.current_version, "children": []},
-						node.name + " tool_dep"
+						node.name + " tool_dep".
+						false
 					);
 					update_workflow($scope.wf);
 				}
@@ -1332,7 +1357,8 @@ app.controller('arkalos_Ctrl', function($scope, $http, $timeout) {
 					$scope.wf_add_edge(
 						{'name': node.name},
 						{"name": tool_var_name, "type": "tool_var", "tool_name": node.tool_name, "current_version": node.current_version, "children": []},
-						node.name + " tool_var"
+						node.name + " tool_var",
+						false
 					);
 					update_workflow($scope.wf);
 
@@ -1363,7 +1389,8 @@ app.controller('arkalos_Ctrl', function($scope, $http, $timeout) {
 							$scope.wf_add_edge(
 								{'name': node.name},
 								{'name': new_node_node_name},
-								node.name + ' <--> ' + new_node_node_name
+								node.name + ' <--> ' + new_node_node_name,
+								false
 							);
 						}
 						update_workflow($scope.wf);
@@ -1401,7 +1428,8 @@ app.controller('arkalos_Ctrl', function($scope, $http, $timeout) {
 							$scope.wf_add_edge(
 								{'name': node.name},
 								{ 'name': new_node_node_name},
-								node.name + ' <--> ' + new_node_node_name
+								node.name + ' <--> ' + new_node_node_name,
+								false
 							);
 						}
 						update_workflow($scope.wf);
@@ -1417,6 +1445,21 @@ app.controller('arkalos_Ctrl', function($scope, $http, $timeout) {
 		}
 
 
+	};
+
+	/*
+	* clicked a node in wf
+	* IMPORTANT TODO: Distibguish between double click and click. This is fired two time in double click!
+	*/
+	$scope.wf_node_click = function(node) {
+		//alert('CLICKED!');
+		//console.log("CLICKED!");
+
+		if (node.type == 'variable') {
+			$scope.wf_variable_name = node.variable_name;
+			$scope.wf_variable_value = node.variable_value;
+			$scope.wf_variable_description = node.variable_description;
+		}
 	};
 
 	/*
@@ -1451,7 +1494,9 @@ app.controller('arkalos_Ctrl', function($scope, $http, $timeout) {
 	* Button on workflows add task clicked
 	*/
 	$scope.wf_add_task_clicked = function() {
-		alert('qwasfg');
+		var new_node = {"name": $scope.wf_task_name, "type": "task", "children": []}
+		$scope.wf_add_node(new_node);
+		update_workflow($scope.wf);
 	};
 
 	/*
@@ -1459,6 +1504,13 @@ app.controller('arkalos_Ctrl', function($scope, $http, $timeout) {
 	*/
 	$scope.wf_cancel_task_clicked = function() {
 		$scope.wf_form_task_show = false;
+	};
+
+	/*
+	* Clicked the "download" glyphicon in clicked variable
+	*/
+	$scope.wf_import_variable = function() {
+		task_ace.setValue(log_ace.getValue() + '$' +$scope.wf_variable_name, 1);
 	};
 
 	///////////////////////////////////////////////////

@@ -286,17 +286,103 @@ $('#jstree_tools').on('select_node.jstree', function(e, data){
 //COLA
 
 	var width = 960, height = 500;
-
-
-	//console.log('1111');
-	//console.log(cola);
-	//console.log('2222');
+	var zoom_allowed = true;
+	var drag_new_line = false;
 
 	var ark_cola = cola.d3adaptor(d3)
 	        .linkDistance(100)
 	        .avoidOverlaps(true)
 	        .handleDisconnected(false)
 	        .size([width, height]);
+
+	var ark_drag = ark_cola.drag()
+		.on('start', function() {
+			console.log("drag start"); 
+		})
+		.on('end', function(d) { 
+			console.log("drag end");
+
+
+              		if (d.type == "task") {
+
+               			console.log('11111');
+               			zoom_allowed = false;
+
+               			var new_line = wf_g.append("line");
+    					new_line
+    							.attr("class", "new_line")
+    							.attr("stroke", "blue")
+    							.attr("stroke-width", 2)
+    							.attr("fill", "none")
+    							.attr("x1", d.x)
+    							.attr("y1", d.y)
+    							.attr("x2", d.x)
+    							.attr("y2", d.y);
+
+
+						var selected_node = d3.select(this);
+
+               			var w = d3.select(window)
+               				.on("mousemove", mousemove)
+      						.on("mouseup", mouseup);
+
+      					//d3.event.preventDefault();
+
+						function mouseup() {
+							console.log("MOUSE UP");
+	
+//							console.log(d3.mouse(selected_node.node()));
+
+							var m = d3.mouse(selected_node.node());
+							var shortest_distance = Number.MAX_VALUE;
+							var shortest_node_index = -1;
+							var nodes = ark_cola._nodes;
+
+							for (var i=0; i<nodes.length; i++) {
+								if (nodes[i].type != "tool") {
+									continue;
+								}
+
+								var distance = Math.sqrt(((m[0] - nodes[i].x) * (m[0] - nodes[i].x)) + ((m[1] - nodes[i].y) * (m[1] - nodes[i].y)));
+								if (distance < shortest_distance) {
+									shortest_distance = distance;
+									shortest_node_index = i;
+								}
+							}
+							if ((shortest_node_index > -1) && (shortest_distance <= 10)) {
+		               			angular.element($('#tools_table')).scope().$apply(function(){
+		               				angular.element($('#tools_table')).scope().wf_add_edge(
+		               					d,
+		               					nodes[shortest_node_index],
+		               					d.name + ' <--> ' + nodes[shortest_node_index].name,
+		               					true
+		               				);
+		               			});
+							}
+
+							w.on("mousemove", null).on("mouseup", null);
+							zoom_allowed = true;
+
+							//Remove new_line
+							new_line.remove();
+ 						}
+
+      					function mousemove() {
+
+
+    						var m = d3.mouse(selected_node.node());
+
+    						new_line
+    							.attr("x2", m[0] - 1)
+    							.attr("y2", m[1] - 1);
+  						}
+
+ 						console.log('2222222');
+
+               		}
+
+			
+		});
 
 	var svg = d3.select("#d3wf").append("svg")
 	        //.attr("width", width)
@@ -316,6 +402,7 @@ $('#jstree_tools').on('select_node.jstree', function(e, data){
         .style("fill", "none")
         .style("pointer-events", "all")
         .call(d3.zoom()
+          .filter(function(){return zoom_allowed;})
           .scaleExtent([1 / 2, 4]) // Change this to 1/20 for smaller zoom
           .on("zoom", zoomed));
 
@@ -340,7 +427,11 @@ $('#jstree_tools').on('select_node.jstree', function(e, data){
 
         var nodeEnter = node.enter();
         nodeEnter.append("circle")
-        		.attr("class", "node")
+//        		.attr("class", "node")
+        		.attr("class", function(d) {
+        			console.log(d);
+        			return  d.type == 'task' ? 'node task' : 'node' ;
+        		})
         		.attr("r", 10)
 
 //        nodeEnter.append("rect")
@@ -355,22 +446,32 @@ $('#jstree_tools').on('select_node.jstree', function(e, data){
                				return "Cyan";
                			case "variable":
                				return "LightPink";
+               			case "task":
+               				return "Gold";
                			default:
                				return "White";
                		} 
                		
+               })
+               .on("click", function(d) {
+               		angular.element($('#tools_table')).scope().$apply(function(){
+               			angular.element($('#tools_table')).scope().wf_node_click(d);
+               		});
+
                })
                .on("dblclick", function(d) {
                 	//console.log(d.width);
                 	angular.element($('#tools_table')).scope().$apply(function(){
                 		angular.element($('#tools_table')).scope().wf_node_double_click(d);
                 	});
-              	})
-               .call(ark_cola.drag) // 1st: Make rect drag-able 
+               })
+//               .on("mousedown", function(d) {
+               .call(ark_drag)
                .append("title")
                   .text(function (d) { return d.name; });
 
         var node = wf_g.selectAll(".node");
+
 
         //Node labels
         var label = wf_g.selectAll(".label")
