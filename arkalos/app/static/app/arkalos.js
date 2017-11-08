@@ -24,7 +24,7 @@ window.onload = function () {
 
     window.task_ace = ace.edit('task_ace');
     window.task_ace.setTheme("ace/theme/github");
-    window.task_ace.getSession().setMode("ace/mode/markdown");
+    window.task_ace.getSession().setMode("ace/mode/sh");
 
     //Create showdown markdown converter
     window.markdown = new showdown.Converter();

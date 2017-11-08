@@ -1117,6 +1117,23 @@ app.controller('arkalos_Ctrl', function($scope, $http, $timeout) {
 	};
 
 	/*
+	* Debug workflow. Return a string representation of the graph
+	*/
+	$scope.wf_debug = function() {
+		var ret = ''
+
+		for (var i=0; i<$scope.wf.nodes.length; i++) {
+			ret += 'NODE: ' + $scope.wf.nodes[i].name +  '  INDEX FIELD: ' + $scope.wf.nodes[i].index + ' INDEX ARRAY: ' + i + ' \n'; 
+		}
+		for (var i=0; i<$scope.wf.links.length; i++) {
+			ret += 'EDGE  ' + $scope.wf.links[i].name + ' SOURCE: ' + $scope.wf.links[i].source.index + '  TARGET: ' + $scope.wf.links[i].target.index + '\n';
+		}
+
+		return ret
+	};
+
+
+	/*
 	* Clicked the "Workflows" from navbar
 	*/
 	$scope.nav_bar_wf_clicked = function() {
@@ -1194,17 +1211,19 @@ app.controller('arkalos_Ctrl', function($scope, $http, $timeout) {
 	/*
 	* Returns all the edge indexes that target to a specific node index
 	*/
-	$scope.wf_get_edge_index_from_targets_index = function(node_index) {
-		var ret = [];
-
-		for (var i=0; i<$scope.wf.links.length; i++) {
-			if ($scope.wf.links[i].target.index == node_index) {
-				ret.push(i);
-			}
-		}
-
-		return ret;
-	};
+//	$scope.wf_get_edge_index_from_targets_index = function(node_index) {
+//		var ret = [];
+//
+//		for (var i=0; i<$scope.wf.links.length; i++) {
+//			if ($scope.wf.links[i].target.index == node_index) {
+//				console.log("Adding to the remove stack:");
+//				console.log($scope.wf.links[i].name);
+//				ret.push(i);
+//			}
+//		}
+//
+//		return ret;
+//	};
 
 	/* 
 	* Add a node to the graph
@@ -1253,7 +1272,34 @@ app.controller('arkalos_Ctrl', function($scope, $http, $timeout) {
 	*/
 	$scope.wf_remove_node_index = function(node_index) {
 
-		//Go through all links
+
+		//Remove this node
+//		console.log('WF BEFORE:');
+//		console.log($scope.wf_debug());
+		//Remove the nodes
+		$scope.wf.nodes.splice(node_index, 1);
+//		console.log('WF AFTER');
+//		console.log($scope.wf_debug());
+
+		// Which edges lead to this node?
+		//var edges_indexes_to_remove = $scope.wf_get_edge_index_from_targets_index(node_index);
+		while (true) {
+			var to_delete = -1;
+			for (var i=0; i<$scope.wf.links.length; i++) {
+				if ($scope.wf.links[i].target.index == node_index) {
+					to_delete = i;
+					break;
+				}
+			}
+			if (to_delete > -1) {
+				$scope.wf.links.splice(to_delete, 1);
+			}
+			else {
+				break;
+			}
+		}
+		
+		//Go through all links. And fix the indexes 
 		for (var i=0; i<$scope.wf.links.length; i++) {
 			var current_link = $scope.wf.links[i];
 
@@ -1265,7 +1311,7 @@ app.controller('arkalos_Ctrl', function($scope, $http, $timeout) {
 			}
 		}
 
-		//Go through all nodes/ Alter children
+		//Go through all nodes and fix children indexes
 		for (var i=0; i<$scope.wf.nodes.length; i++) {
 			for (var j=0; j<$scope.wf.nodes[i].children.length; j++) {
 				if ($scope.wf.nodes[i].children[j] > node_index) {
@@ -1273,22 +1319,6 @@ app.controller('arkalos_Ctrl', function($scope, $http, $timeout) {
 				}
 			}
 		}
-
-		//Remove this node
-		$scope.wf.nodes.splice(node_index, 1);
-
-		//Remove THE ONE EDGE that links to that node
-		var edges_indexes_to_remove = $scope.wf_get_edge_index_from_targets_index(node_index);
-
-		for (var i=0; i<edges_indexes_to_remove.length; i++) {
-			$scope.wf.links.splice(edges_indexes_to_remove[i], 1);
-		}
-//		if (edges_indexes_to_remove.length > 1) {
-//			alert("THIS SHOULD NEVER HAPPEN");
-//		}
-//		if (edges_indexes_to_remove.length == 1) {
-//			$scope.wf.links.splice(edges_indexes_to_remove[0], 1);
-//		}
 
 	};
 
@@ -1329,7 +1359,11 @@ app.controller('arkalos_Ctrl', function($scope, $http, $timeout) {
 			//Does this node has children?
 			if (node.children.length > 0) {
 				//It has children. Remove them
+				console.log("Before remove");
+				console.log($scope.wf);
 				$scope.wf_remove_children(node);
+				console.log("After remove");
+				console.log($scope.wf);
 				//console.log($scope.wf);
 				update_workflow($scope.wf);
 			}
@@ -1344,7 +1378,7 @@ app.controller('arkalos_Ctrl', function($scope, $http, $timeout) {
 					$scope.wf_add_edge(
 						{'name': node.name},
 						{"name": tool_dep_name, "type": "tool_dep", "tool_name": node.tool_name, "current_version": node.current_version, "children": []},
-						node.name + " tool_dep".
+						node.name + " tool_dep",
 						false
 					);
 					update_workflow($scope.wf);
