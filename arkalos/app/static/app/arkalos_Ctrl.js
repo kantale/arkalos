@@ -1351,6 +1351,80 @@ app.controller('arkalos_Ctrl', function($scope, $http, $timeout) {
 	};
 
 	/*
+	* Add tool --> variables edges
+	*/
+	$scope.wf_add_tool_variables_edges = function(node) {
+		$scope.ajax(
+			'get_tool_variables/',
+			{
+				'name': node.tool_name,
+				'current_version': node.current_version
+			},
+			function (response) {
+				for (var i=0; i<response['variables'].length; i++) {
+					var new_node_node_name = $scope.wf_add_variable_in_graph(response['variables'][i], {'name': node.tool_name, 'current_version': node.current_version});
+					$scope.wf_add_edge(
+						{'name': node.name},
+						{ 'name': new_node_node_name},
+						node.name + ' <-v-> ' + new_node_node_name,
+						false
+					);
+				}
+				update_workflow($scope.wf);
+			},
+			function (response) {
+				$scope.wf_error_msg = response['error_message'];
+			},
+			function (statusText) {
+				$scope.wf_error_msg = statusText;
+			}
+		);
+
+	};
+
+	/*
+	* Add tool --> dependencies edges
+	*/
+	$scope.wf_add_tool_dependencies_edges = function(node, callback) {
+		$scope.ajax(
+			'get_tool_dependencies/',
+			{
+				'name': node.tool_name,
+				'current_version': node.current_version
+			},
+			function (response) {
+				for (var i=0; i<response['dependencies'].length; i++) {
+					var tool_name = response['dependencies'][i].name;
+					var tool_current_version = response['dependencies'][i].current_version;
+					var new_node_node_name = $scope.wf_add_tool_in_graph({'name': tool_name, 'current_version': tool_current_version}, false);
+					$scope.wf_add_edge(
+						{'name': node.name},
+						{'name': new_node_node_name},
+						node.name + ' <-d-> ' + new_node_node_name,
+						false
+					);
+				}
+				callback(node);
+			},
+			function (response) {
+				$scope.wf_error_msg = response['error_message'];
+			},
+			function (statusText) {
+				$scope.wf_error_msg = statusText;
+			}
+		);
+
+
+	};
+
+	/*
+	* Add tool --> variables edges AND tool variable edges
+	*/
+	$scope.add_tool_dependencies_variables_edges = function(node) {
+		$scope.wf_add_tool_dependencies_edges(node, $scope.wf_add_tool_variables_edges);
+	};
+
+	/*
 	* double clicked a node in wf
 	*/
 	$scope.wf_node_double_click = function(node) {
@@ -1359,122 +1433,18 @@ app.controller('arkalos_Ctrl', function($scope, $http, $timeout) {
 			//Does this node has children?
 			if (node.children.length > 0) {
 				//It has children. Remove them
-				console.log("Before remove");
-				console.log($scope.wf);
+				//console.log("Before remove");
+				//console.log($scope.wf);
 				$scope.wf_remove_children(node);
-				console.log("After remove");
-				console.log($scope.wf);
+				//console.log("After remove");
 				//console.log($scope.wf);
 				update_workflow($scope.wf);
 			}
 
 			else {
-				//Check if this tool has the dependencies node
-				var tool_dep_name = node.name + ' dependencies';
-				var tool_dep_name_index = $scope.wf_get_node_index(tool_dep_name);
-
-				if (tool_dep_name_index == -1) {
-					// It does not have. Add it. 
-					$scope.wf_add_edge(
-						{'name': node.name},
-						{"name": tool_dep_name, "type": "tool_dep", "tool_name": node.tool_name, "current_version": node.current_version, "children": []},
-						node.name + " tool_dep",
-						false
-					);
-					update_workflow($scope.wf);
-				}
-
-				//Check if this tool has the exposed node
-				var tool_var_name = node.name + ' variables';
-				var tool_var_name_index = $scope.wf_get_node_index(tool_var_name);
-				if (tool_var_name_index == -1) {
-					$scope.wf_add_edge(
-						{'name': node.name},
-						{"name": tool_var_name, "type": "tool_var", "tool_name": node.tool_name, "current_version": node.current_version, "children": []},
-						node.name + " tool_var",
-						false
-					);
-					update_workflow($scope.wf);
-
-				}
-			}
-		}
-		else if (node.type == 'tool_dep') {
-			//Does this node has children?
-			if (node.children.length > 0) {
-				//It has children. Remove them
-				$scope.wf_remove_children(node);
-				//console.log($scope.wf);
-				update_workflow($scope.wf);
-			}
-
-			else {			
-				$scope.ajax(
-					'get_tool_dependencies/',
-					{
-						'name': node.tool_name,
-						'current_version': node.current_version
-					},
-					function (response) {
-						for (var i=0; i<response['dependencies'].length; i++) {
-							var tool_name = response['dependencies'][i].name;
-							var tool_current_version = response['dependencies'][i].current_version;
-							var new_node_node_name = $scope.wf_add_tool_in_graph({'name': tool_name, 'current_version': tool_current_version}, false);
-							$scope.wf_add_edge(
-								{'name': node.name},
-								{'name': new_node_node_name},
-								node.name + ' <--> ' + new_node_node_name,
-								false
-							);
-						}
-						update_workflow($scope.wf);
-
-					},
-					function (response) {
-						$scope.wf_error_msg = response['error_message'];
-					},
-					function (statusText) {
-						$scope.wf_error_msg = statusText;
-					}
-				);
-			}
-		}
-		else if (node.type == 'tool_var') {
-			//Does this node has children?
-			if (node.children.length > 0) {
-				//It has children. Remove them
-				$scope.wf_remove_children(node);
-				//console.log($scope.wf);
-				update_workflow($scope.wf);
-			}
-
-			else {
-				//This node does not have children. Fetch them!
-				$scope.ajax(
-					'get_tool_variables/',
-					{
-						'name': node.tool_name,
-						'current_version': node.current_version
-					},
-					function (response) {
-						for (var i=0; i<response['variables'].length; i++) {
-							var new_node_node_name = $scope.wf_add_variable_in_graph(response['variables'][i], {'name': node.tool_name, 'current_version': node.current_version});
-							$scope.wf_add_edge(
-								{'name': node.name},
-								{ 'name': new_node_node_name},
-								node.name + ' <--> ' + new_node_node_name,
-								false
-							);
-						}
-						update_workflow($scope.wf);
-					},
-					function (response) {
-						$scope.wf_error_msg = response['error_message'];
-					},
-					function (statusText) {
-						$scope.wf_error_msg = statusText;
-					}
-				);
+				//Add dependencies and variables
+				console.log('Adding dependencies and variables');
+				$scope.add_tool_dependencies_variables_edges(node);
 			}
 		}
 
