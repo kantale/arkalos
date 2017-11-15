@@ -180,6 +180,21 @@ $('#jstree_drophere').jstree({
 	}
 });
 
+//This is the tree in workflow tasks with tool/data dependencies
+$('#wf_task_jstree').jstree({
+	"core": {check_callback: true},
+	"plugins": ["dnd", "types"],
+	"dnd": {
+		"is_draggable": function (node) {
+			return false;
+        }
+	},
+	"types": {
+		"tool": {"icon": "glyphicon glyphicon-flash"},
+		"exposed": {"icon" : "glyphicon glyphicon-asterisk"}
+	}
+});
+
 
 // http://jsfiddle.net/DGAF4/517/ 
 //$('#jstree_tools').jstree({
@@ -283,6 +298,73 @@ $('#jstree_tools').on('select_node.jstree', function(e, data){
 
 });
 
+
+// Button check box
+// https://bootsnipp.com/snippets/featured/jquery-checkbox-buttons 
+$('.button-checkbox').each(function () {
+
+        // Settings
+        var $widget = $(this),
+            $button = $widget.find('button'),
+            $checkbox = $widget.find('input:checkbox'),
+            color = $button.data('color'),
+            settings = {
+                on: {
+                    icon: 'glyphicon glyphicon-check'
+                },
+                off: {
+                    icon: 'glyphicon glyphicon-unchecked'
+                }
+            };
+
+        // Event Handlers
+        $button.on('click', function () {
+            $checkbox.prop('checked', !$checkbox.is(':checked'));
+            $checkbox.triggerHandler('change');
+            updateDisplay();
+        });
+        $checkbox.on('change', function () {
+            updateDisplay();
+        });
+
+        // Actions
+        function updateDisplay() {
+            var isChecked = $checkbox.is(':checked');
+
+            // Set the button's state
+            $button.data('state', (isChecked) ? "on" : "off");
+
+            // Set the button's icon
+            $button.find('.state-icon')
+                .removeClass()
+                .addClass('state-icon ' + settings[$button.data('state')].icon);
+
+            // Update the button's color
+            if (isChecked) {
+                $button
+                    .removeClass('btn-default')
+                    .addClass('btn-' + color + ' active');
+            }
+            else {
+                $button
+                    .removeClass('btn-' + color + ' active')
+                    .addClass('btn-default');
+            }
+        }
+
+        // Initialization
+        function init() {
+
+            updateDisplay();
+
+            // Inject the icon if applicable
+            if ($button.find('.state-icon').length == 0) {
+                $button.prepend('<i class="state-icon ' + settings[$button.data('state')].icon + '"></i> ');
+            }
+        }
+        init();
+});
+
 //COLA
 
 	var width = 960, height = 500;
@@ -302,8 +384,8 @@ $('#jstree_tools').on('select_node.jstree', function(e, data){
 		.on('end', function(d) { 
 			console.log("drag end");
 
-
-              		if (d.type == "task") {
+					//If this is a task node and the add_edge button is checked
+              		if ((d.type == "task") && ($('#add_edge_button').data().state) == 'on') {
 
                			console.log('11111');
                			zoom_allowed = false;
@@ -391,6 +473,22 @@ $('#jstree_tools').on('select_node.jstree', function(e, data){
 	        .style("border-style", "solid")
 	        .style("border-width", "1px");
 
+
+	// define arrow markers for graph links
+	//http://bl.ocks.org/rkirsling/5001347
+	svg.append('svg:defs').append('svg:marker')
+	    .attr('id', 'end-arrow')
+	    .attr('viewBox', '0 -5 10 10')
+	    .attr('refX', 6)
+	    .attr('markerWidth', 10)
+	    .attr('markerHeight', 10)
+	    .attr('orient', 'auto')
+	  .append('svg:path')
+	    .attr('d', 'M0,-5L10,0L0,5')
+	    .attr('fill', '#000');
+
+
+
 	var main_g = svg.append("g");
 	var wf_g = svg.append("g");
 
@@ -410,7 +508,6 @@ $('#jstree_tools').on('select_node.jstree', function(e, data){
       function zoomed() {
            wf_g.attr("transform", d3.event.transform);
       }
-
 
 	window.update_workflow = function(wf) {
 		ark_cola
@@ -486,23 +583,58 @@ $('#jstree_tools').on('select_node.jstree', function(e, data){
 
         var label = wf_g.selectAll(".label");
 
+        //Lines as links
+        if (false) {
+			var link = wf_g.selectAll(".link")
+	            .data(wf.links, function (d) {return d.name;});
+	        link.exit().remove();
+	        link
+	          .enter().append("line")
+	            .attr("class", "link");
 
-		var link = wf_g.selectAll(".link")
-            .data(wf.links, function (d) {return d.name;});
-        link.exit().remove();
-        link
-          .enter().append("line")
-            .attr("class", "link");
+	        var link = wf_g.selectAll(".link");
+    	}
 
-         var link = wf_g.selectAll(".link");
+    	//Lines as paths
+    	if (true) {
+    		var path = wf_g.selectAll(".link")
+    			.data(wf.links, function(d) {return d.name;});
+    		path.exit().remove();
+    		path
+    		    .enter().append('svg:path')
+    		    .attr("class", "link")
+    		    .style("marker-end", "url(#end-arrow)");
 
+    		var link = wf_g.selectAll(".link");
+    	}
 
         ark_cola.on("tick", function () {
 
-			link.attr("x1", function (d) { return d.source.x; })
-                .attr("y1", function (d) { return d.source.y; })
-                .attr("x2", function (d) { return d.target.x; })
-                .attr("y2", function (d) { return d.target.y; });
+        	if (false) {
+				link.attr("x1", function (d) { return d.source.x; })
+	                .attr("y1", function (d) { return d.source.y; })
+	                .attr("x2", function (d) { return d.target.x; })
+	                .attr("y2", function (d) { return d.target.y; });
+	        }
+
+	        if (true) {
+
+
+				link.attr('d', function(d) {
+				    var deltaX = d.target.x - d.source.x;
+				    var deltaY = d.target.y - d.source.y;
+				    var dist = Math.sqrt(deltaX * deltaX + deltaY * deltaY);
+				    var normX = deltaX / dist;
+				    var normY = deltaY / dist;
+				    var sourcePadding = 0; //d.left ? 17 : 12,
+				    var targetPadding = 15; //d.right ? 17 : 12,
+				    var sourceX = d.source.x + (sourcePadding * normX);
+				    var sourceY = d.source.y + (sourcePadding * normY);
+				    var targetX = d.target.x - (targetPadding * normX);
+				    var targetY = d.target.y - (targetPadding * normY);
+				    return 'M' + sourceX + ',' + sourceY + 'L' + targetX + ',' + targetY;
+				  });
+	        }
 
 
         	//node.attr("x", function (d) { return d.x - d.width / 2 + pad; })

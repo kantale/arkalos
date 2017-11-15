@@ -94,9 +94,9 @@ app.controller('arkalos_Ctrl', function($scope, $http, $timeout) {
 
 		$scope.wf = {"nodes": [], "links": [], "groups": []};
 
-		$scope.wf_variable_name = '';
-		$scope.wf_variable_value = '';
-		$scope.wf_variable_description = '';
+		$scope.wf_show_tools_data = false;
+		$scope.wf_task_jstree_data = [];
+
 	};
 
 
@@ -1460,9 +1460,10 @@ app.controller('arkalos_Ctrl', function($scope, $http, $timeout) {
 		//console.log("CLICKED!");
 
 		if (node.type == 'variable') {
-			$scope.wf_variable_name = node.variable_name;
-			$scope.wf_variable_value = node.variable_value;
-			$scope.wf_variable_description = node.variable_description;
+		}
+		else if (node.type == 'task') {
+			$scope.wf_form_task_show = true;
+			$scope.wf_task_name = node.name;
 		}
 	};
 
@@ -1514,7 +1515,15 @@ app.controller('arkalos_Ctrl', function($scope, $http, $timeout) {
 	* Clicked the "download" glyphicon in clicked variable
 	*/
 	$scope.wf_import_variable = function() {
-		task_ace.setValue(log_ace.getValue() + '$' +$scope.wf_variable_name, 1);
+		alert('IMPLEMENT ME!!!'); // or.. delete me
+		//task_ace.setValue(log_ace.getValue() + '$' +$scope.wf_variable_name, 1);
+	};
+
+	/*
+	* Clicked the show/hide tools/data in workdlow
+	*/
+	$scope.wf_show_tools_data_clicked = function() {
+		$scope.wf_show_tools_data = ! $scope.wf_show_tools_data;
 	};
 
 	///////////////////////////////////////////////////
