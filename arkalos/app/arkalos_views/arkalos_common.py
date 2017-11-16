@@ -30,6 +30,7 @@ pybtex_html_backend = pybtex.plugin.find_plugin('pybtex.backends', 'html')()
 pybtex_parser = pybtex.database.input.bibtex.Parser()
 
 sep = '||'
+sep2 = '@@'
 format_time_string = '%a, %d %b %Y %H:%M:%S' # RFC 2822 Internet email standard. https://docs.python.org/2/library/time.html#time.strftime   # '%Y-%m-%d, %H:%M:%S'
 url_validator = URLValidator() # https://stackoverflow.com/questions/7160737/python-how-to-validate-a-url-in-python-malformed-or-not 
 
@@ -266,9 +267,10 @@ def build_jstree_tool_dependencies(tool, prefix='', include_original=False):
     def node(t):
 
         ret = {
-            'id': prefix + sep + t.name + sep + str(t.current_version),
+            'id': prefix + sep + t.name + sep + str(t.current_version), #Through this id we get info from jstree jandlers 
             'text': t.name + ' ' + str(t.current_version),
-            'children': [build_jstree_tool_dependencies(x, prefix, include_original=True) for x in t.dependencies.all()] + [{'text': x[0], 'type': 'exposed', 'value': x[1], 'description': x[2]} for x in simplejson.loads(t.exposed)],
+            'children': [build_jstree_tool_dependencies(x, prefix, include_original=True) for x in t.dependencies.all()] + \
+                [{'text': x[0], 'type': 'exposed', 'value': x[1], 'description': x[2], 'id': prefix+sep+x[0]+sep+t.name+sep2+str(t.current_version)} for x in simplejson.loads(t.exposed)],
             'current_version': t.current_version,
             'name': t.name,
             'type': 'tool',

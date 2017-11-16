@@ -1537,6 +1537,13 @@ app.controller('arkalos_Ctrl', function($scope, $http, $timeout) {
 	*/
 	$scope.wf_add_task_tool_edge = function(node_source, source_target) {
 
+		//node_source is a task
+		//source_target is a tool
+		//Here we add the dependencies of the tool in the task
+		node_source.tools_jstree_data.push(source_target.jstree_dependencies);
+		//console.log('DELETE 1');
+		//console.log(node_source);
+
 		$scope.wf_add_edge(
 			node_source,
 		    source_target,
@@ -1585,6 +1592,13 @@ app.controller('arkalos_Ctrl', function($scope, $http, $timeout) {
 		else if (node.type == 'task') {
 			$scope.wf_form_task_show = true;
 			$scope.wf_task_name = node.name;
+
+			//Add the task tool data in the jstree
+			//console.log('DELETE 2');
+			//console.log(node.tools_jstree_data);
+			//console.log(node);
+			$('#wf_task_jstree').jstree(true).settings.core.data = node.tools_jstree_data;
+			$('#wf_task_jstree').jstree(true).refresh();
 		}
 	};
 
@@ -1621,7 +1635,7 @@ app.controller('arkalos_Ctrl', function($scope, $http, $timeout) {
 	*/
 	$scope.wf_add_task_clicked = function() {
 		// tools_data are the dependencies tree
-		var new_node = {"name": $scope.wf_task_name, "type": "task", "children": [], "tools_data": []};
+		var new_node = {"name": $scope.wf_task_name, "type": "task", "children": [], "tools_jstree_data": []};
 		$scope.wf_add_node(new_node);
 		update_workflow($scope.wf);
 	};
@@ -1638,7 +1652,7 @@ app.controller('arkalos_Ctrl', function($scope, $http, $timeout) {
 	*/
 	$scope.wf_import_variable = function() {
 		alert('IMPLEMENT ME!!!'); // or.. delete me
-		//task_ace.setValue(log_ace.getValue() + '$' +$scope.wf_variable_name, 1);
+		//task_ace.setValue(task_ace.getValue() + '$' +$scope.wf_variable_name, 1);
 	};
 
 	/*

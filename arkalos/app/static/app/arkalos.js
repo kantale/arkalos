@@ -186,7 +186,7 @@ $('#wf_task_jstree').jstree({
 	"plugins": ["dnd", "types"],
 	"dnd": {
 		"is_draggable": function (node) {
-			return false;
+			return true;
         }
 	},
 	"types": {
@@ -242,13 +242,40 @@ $(document).on('dnd_move.vakata', function (e, data) {
 			data.helper.find('.jstree-icon').removeClass('jstree-ok').addClass('jstree-er');
 		}
 	}
+	else if (tt_s[0] == '5') { // We are moving an item from the workflow task jstree dependecies/exposed
+		//Is this a tool?
+		if (tt.indexOf('@@') !== -1) {
+			//This is a variable
+			if (t.closest('#task_ace').length) {
+				data.helper.find('.jstree-icon').removeClass('jstree-er').addClass('jstree-ok');
+			}
+			else {
+				data.helper.find('.jstree-icon').removeClass('jstree-ok').addClass('jstree-er');
+			}	
+
+		}
+		else {
+			//This is a tool
+			if (t.closest('#wf_task_dropheretodelete').length) {
+				data.helper.find('.jstree-icon').removeClass('jstree-er').addClass('jstree-ok');
+			}
+			else {
+				data.helper.find('.jstree-icon').removeClass('jstree-ok').addClass('jstree-er');
+			}	
+
+		}
+	}
 
 });
 
 $(document).on('dnd_stop.vakata', function (e, data) {
 	var t = $(data.event.target);
 	var tt = $(data.element).attr('id'); // 2||plink||12_anchor
-	var tt_s = tt.split('_').slice(0,-1).join().split('||'); // Array [ "2", "plink", "12" ]
+	//Remove the _anchor . https://stackoverflow.com/questions/2729666/javascript-replace-last-occurrence-of-text-in-a-string 
+	tt = tt.replace(new RegExp('_anchor$'), '');
+
+	//Split it
+	var tt_s = tt.split('||'); // Array [ "2", "plink", "12" ]
 
 	if (tt_s[0] == '2') { //We are moving an item from the dependency TABLE
 
@@ -280,6 +307,20 @@ $(document).on('dnd_stop.vakata', function (e, data) {
 			angular.element($('#tools_table')).scope().$apply(function(){
 				angular.element($('#tools_table')).scope().wf_add_tool_in_graph({'name': tt_s[1], 'current_version': +tt_s[2]}, true, false);
 			});
+		}
+	}
+	else if (tt_s[0] == '5') { // We are moving an item from the workflow task jstree dependecies/exposed
+		//Is this a tool?
+		if (tt.indexOf('@@') !== -1) {
+			//This is a variable
+
+			if (t.closest('#task_ace').length) {
+				task_ace.session.insert(task_ace.getCursorPosition(), '$' + tt_s[1]); // Insert at cursor position 
+				//task_ace.setValue(task_ace.getValue() + '$' + tt_s[1], 1); // Insert at the end
+			}
+		}
+		else {
+			//This is a tool
 		}
 	}
 
