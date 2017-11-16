@@ -268,7 +268,7 @@ def build_jstree_tool_dependencies(tool, prefix='', include_original=False):
         ret = {
             'id': prefix + sep + t.name + sep + str(t.current_version),
             'text': t.name + ' ' + str(t.current_version),
-            'children': [build_jstree_tool_dependencies(x, prefix, include_original=True) for x in t.dependencies.all()] + [{'text': x[0], 'type': 'exposed'} for x in simplejson.loads(t.exposed)],
+            'children': [build_jstree_tool_dependencies(x, prefix, include_original=True) for x in t.dependencies.all()] + [{'text': x[0], 'type': 'exposed', 'value': x[1], 'description': x[2]} for x in simplejson.loads(t.exposed)],
             'current_version': t.current_version,
             'name': t.name,
             'type': 'tool',
@@ -840,11 +840,15 @@ def jstree_tool_dependencies(request, **kwargs):
 
     name = kwargs['name']
     current_version = int(kwargs['current_version'])
+    if 'prefix' in kwargs:
+        prefix=kwargs['prefix']
+    else:
+        prefix = '3'
 
     tool = Tools.objects.get(name=name, current_version=current_version)
 
     ret = {
-        'jstree': build_jstree_tool_dependencies(tool, prefix='3', include_original=True)
+        'jstree': build_jstree_tool_dependencies(tool, prefix=prefix, include_original=True)
     }
 
     #print(ret)

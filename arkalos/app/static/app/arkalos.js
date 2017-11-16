@@ -278,7 +278,7 @@ $(document).on('dnd_stop.vakata', function (e, data) {
 	else if (tt_s[0] == '4') { // We are moving an item from the workflow tool table
 		if (t.closest('#d3wf').length) {
 			angular.element($('#tools_table')).scope().$apply(function(){
-				angular.element($('#tools_table')).scope().wf_add_tool_in_graph({'name': tt_s[1], 'current_version': +tt_s[2]}, true);
+				angular.element($('#tools_table')).scope().wf_add_tool_in_graph({'name': tt_s[1], 'current_version': +tt_s[2]}, true, false);
 			});
 		}
 	}
@@ -433,12 +433,7 @@ $('.button-checkbox').each(function () {
 							}
 							if ((shortest_node_index > -1) && (shortest_distance <= 10)) {
 		               			angular.element($('#tools_table')).scope().$apply(function(){
-		               				angular.element($('#tools_table')).scope().wf_add_edge(
-		               					d,
-		               					nodes[shortest_node_index],
-		               					d.name + ' <--> ' + nodes[shortest_node_index].name,
-		               					true
-		               				);
+		               				angular.element($('#tools_table')).scope().wf_add_task_tool_edge(d, nodes[shortest_node_index]);
 		               			});
 							}
 

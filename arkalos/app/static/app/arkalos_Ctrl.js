@@ -1149,17 +1149,63 @@ app.controller('arkalos_Ctrl', function($scope, $http, $timeout) {
 	};
 
 	/*
-	* Add tool to graph. Drag and drop from table.
+	* Add tool to graph. 
+	* It gets called from here as well from arcalos.js Drag and drop from table
 	*/
-	$scope.wf_add_tool_in_graph = function(row, update) {
+	$scope.wf_add_tool_in_graph = function(row, update, dependencies) {
 
 		var new_node_node_name = row['name'] + ' ' + row['current_version'];
 
-		$scope.wf["nodes"].push({"name": new_node_node_name, "type": "tool", "current_version": row['current_version'], "tool_name": row["name"], "children": []});
-		//console.log($scope.wf);
-		if (update) {update_workflow($scope.wf);}
-	
-		return new_node_node_name;
+		if (dependencies===false) {
+			//We do not have dependencies
+			//We need the dependencies and expossed variables of this tool
+			$scope.ajax(
+				'jstree_tool_dependencies/',
+				{
+					'name': row['name'],
+					'current_version': row['current_version'],
+					'prefix': '5'
+				},
+				function(response) {
+
+					$scope.wf["nodes"].push({
+						"name": new_node_node_name, 
+						"type": "tool", 
+						"current_version": row['current_version'], 
+						"tool_name": row["name"], 
+						"children": [],
+						"jstree_dependencies": response['jstree']
+					});
+
+					if (update) {update_workflow($scope.wf);}
+
+				},
+				function(response){
+					alert('IMPLEMENT ME!!!');
+				},
+				function(statusText) {
+					alert('ERROR! IMPLEMENT ME!');
+				}
+			);
+		}
+
+		else {
+			// We have the dependencies. No need for ajax
+
+			$scope.wf["nodes"].push({
+				"name": new_node_node_name, 
+				"type": "tool", 
+				"current_version": row['current_version'], 
+				"tool_name": row["name"], 
+				"children": [],
+				"jstree_dependencies": dependencies
+			});
+
+			if (update) {update_workflow($scope.wf);}
+
+			return new_node_node_name;
+
+		}
 	};
 
 	/*
@@ -1354,49 +1400,77 @@ app.controller('arkalos_Ctrl', function($scope, $http, $timeout) {
 	* Add tool --> variables edges
 	*/
 	$scope.wf_add_tool_variables_edges = function(node) {
-		$scope.ajax(
-			'get_tool_variables/',
-			{
-				'name': node.tool_name,
-				'current_version': node.current_version
-			},
-			function (response) {
-				for (var i=0; i<response['variables'].length; i++) {
-					var new_node_node_name = $scope.wf_add_variable_in_graph(response['variables'][i], {'name': node.tool_name, 'current_version': node.current_version});
+
+		if (true) {
+			for (var i=0;i<node.jstree_dependencies.children.length; i++) {
+				if (node.jstree_dependencies.children[i].type == 'exposed') {
+
+					//Add the node
+					var new_node_node_name = $scope.wf_add_variable_in_graph(
+						[node.jstree_dependencies.children[i].text, node.jstree_dependencies.children[i].value, node.jstree_dependencies.children[i].description],
+						{'name': node.tool_name, 'current_version': node.current_version}
+					);
+
+					//Add the edge
 					$scope.wf_add_edge(
 						{'name': node.name},
-						{ 'name': new_node_node_name},
+						{'name': new_node_node_name},
 						node.name + ' <-v-> ' + new_node_node_name,
 						false
 					);
 				}
-				update_workflow($scope.wf);
-			},
-			function (response) {
-				$scope.wf_error_msg = response['error_message'];
-			},
-			function (statusText) {
-				$scope.wf_error_msg = statusText;
 			}
-		);
+		}
+
+		//Too resourcefull
+		if (false) {
+			$scope.ajax(
+				'get_tool_variables/',
+				{
+					'name': node.tool_name,
+					'current_version': node.current_version
+				},
+				function (response) {
+					for (var i=0; i<response['variables'].length; i++) {
+						var new_node_node_name = $scope.wf_add_variable_in_graph(response['variables'][i], {'name': node.tool_name, 'current_version': node.current_version});
+						$scope.wf_add_edge(
+							{'name': node.name},
+							{'name': new_node_node_name},
+							node.name + ' <-v-> ' + new_node_node_name,
+							false
+						);
+					}
+					update_workflow($scope.wf);
+				},
+				function (response) {
+					$scope.wf_error_msg = response['error_message'];
+				},
+				function (statusText) {
+					$scope.wf_error_msg = statusText;
+				}
+			);
+		}
 
 	};
 
 	/*
 	* Add tool --> dependencies edges
 	*/
-	$scope.wf_add_tool_dependencies_edges = function(node, callback) {
-		$scope.ajax(
-			'get_tool_dependencies/',
-			{
-				'name': node.tool_name,
-				'current_version': node.current_version
-			},
-			function (response) {
-				for (var i=0; i<response['dependencies'].length; i++) {
-					var tool_name = response['dependencies'][i].name;
-					var tool_current_version = response['dependencies'][i].current_version;
-					var new_node_node_name = $scope.wf_add_tool_in_graph({'name': tool_name, 'current_version': tool_current_version}, false);
+	$scope.wf_add_tool_dependencies_edges = function(node) {
+
+		// Take the tool dependencies from jstree
+		if (true) {
+			for (var i=0; i<node.jstree_dependencies.children.length; i++) {
+				if (node.jstree_dependencies.children[i].type == 'tool') {
+
+					//Add the node
+					var new_node_node_name = $scope.wf_add_tool_in_graph(
+						{'name': node.jstree_dependencies.children[i].name, 'current_version': node.jstree_dependencies.children[i].current_version},
+						false,
+						node.jstree_dependencies.children[i]
+					);
+
+					//Add the edge
 					$scope.wf_add_edge(
 						{'name': node.name},
 						{'name': new_node_node_name},
@@ -1404,15 +1478,39 @@ app.controller('arkalos_Ctrl', function($scope, $http, $timeout) {
 						false
 					);
 				}
-				callback(node);
-			},
-			function (response) {
-				$scope.wf_error_msg = response['error_message'];
-			},
-			function (statusText) {
-				$scope.wf_error_msg = statusText;
 			}
-		);
+		}
+
+		//This is too resourcefull. Take the data from the "jstree_dependencies" instead
+		if (false) {
+			$scope.ajax(
+				'get_tool_dependencies/',
+				{
+					'name': node.tool_name,
+					'current_version': node.current_version
+				},
+				function (response) {
+					for (var i=0; i<response['dependencies'].length; i++) {
+						var tool_name = response['dependencies'][i].name;
+						var tool_current_version = response['dependencies'][i].current_version;
+						var new_node_node_name = $scope.wf_add_tool_in_graph({'name': tool_name, 'current_version': tool_current_version}, false);
+						$scope.wf_add_edge(
+							{'name': node.name},
+							{'name': new_node_node_name},
+							node.name + ' <-d-> ' + new_node_node_name,
+							false
+						);
+					}
+					//callback(node);
+				},
+				function (response) {
+					$scope.wf_error_msg = response['error_message'];
+				},
+				function (statusText) {
+					$scope.wf_error_msg = statusText;
+				}
+			);
+		}
 
 
 	};
@@ -1421,7 +1519,30 @@ app.controller('arkalos_Ctrl', function($scope, $http, $timeout) {
 	* Add tool --> variables edges AND tool variable edges
 	*/
 	$scope.add_tool_dependencies_variables_edges = function(node) {
-		$scope.wf_add_tool_dependencies_edges(node, $scope.wf_add_tool_variables_edges);
+		
+		if (false) {
+			$scope.wf_add_tool_dependencies_edges(node, $scope.wf_add_tool_variables_edges);
+		}
+
+		if (true) {
+			$scope.wf_add_tool_dependencies_edges(node);
+			$scope.wf_add_tool_variables_edges(node);
+			$scope.update_workflow();
+		}
+
+	};
+
+	/*
+	* Add task --> tools edge
+	*/
+	$scope.wf_add_task_tool_edge = function(node_source, source_target) {
+
+		$scope.wf_add_edge(
+			node_source,
+		    source_target,
+		    node_source.name + ' <--> ' + source_target.name,
+		    true
+		);
 	};
 
 	/*
@@ -1499,7 +1620,8 @@ app.controller('arkalos_Ctrl', function($scope, $http, $timeout) {
 	* Button on workflows add task clicked
 	*/
 	$scope.wf_add_task_clicked = function() {
-		var new_node = {"name": $scope.wf_task_name, "type": "task", "children": []}
+		// tools_data are the dependencies tree
+		var new_node = {"name": $scope.wf_task_name, "type": "task", "children": [], "tools_data": []};
 		$scope.wf_add_node(new_node);
 		update_workflow($scope.wf);
 	};
