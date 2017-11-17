@@ -581,6 +581,10 @@ $('.button-checkbox').each(function () {
                				return "LightPink";
                			case "task":
                				return "Gold";
+               			case "input":
+               				return "Blue";
+               			case "output":
+               				return "Red";
                			default:
                				return "White";
                		} 

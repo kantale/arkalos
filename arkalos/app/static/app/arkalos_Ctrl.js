@@ -1255,6 +1255,17 @@ app.controller('arkalos_Ctrl', function($scope, $http, $timeout) {
 	};
 
 	/*
+	* Get a node from a name
+	*/
+	$scope.wf_get_node = function(node_name) {
+		var index = $scope.wf_get_node_index(node_name);
+		if (index > -1) {
+			return $scope.wf.nodes[index];
+		}
+		return null;
+	};
+
+	/*
 	* Returns all the edge indexes that target to a specific node index
 	*/
 //	$scope.wf_get_edge_index_from_targets_index = function(node_index) {
@@ -1631,12 +1642,100 @@ app.controller('arkalos_Ctrl', function($scope, $http, $timeout) {
 	};
 
 	/*
+	* Reads content from task_ace and gets the input and output statement
+	*/
+	$scope.wf_get_input_output_statements = function() {
+		var bash = task_ace.getValue();
+		var bash_s = bash.split('\n');
+		var ret = [[], [], []];
+		for (var i=0; i<bash_s.length; i++) {
+
+			var re1=/^\s*\w+\s*=\s*input\s*(\w+)\s*$/g; // a= input b
+			
+			var match1 = re1.exec(bash_s[i]);
+			if (match1) {
+				ret[0].push(match1[1]);
+			}
+			else {
+				var re2=/^\s*\w+\s*=\s*input\s*(\w+)\s*#.*$/g; // Maybe it has comments at the end
+				var match2 = re2.exec(bash_s[i])
+				if (match2) {
+					ret[0].push(match2[1]);
+				}
+			}
+
+			var re3 = /^\s*output\s+(\w+)\s+\S+.*$/g; // The outputs
+			var match3 = re3.exec(bash_s[i]);
+			if (match3) {
+				ret[1].push(match3[1]);
+			}
+
+			var re4 = /^\s*call\s+(\w+)/g; // Call other tasks
+			var match4 = re4.exec(bash_s[i]); 
+			if (match4) {
+				ret[2].push(match4[1]);
+			}
+		}
+		
+		return ret;
+	};
+
+
+
+	/*
 	* Button on workflows add task clicked
 	*/
 	$scope.wf_add_task_clicked = function() {
 		// tools_data are the dependencies tree
+
+		var inputs_outputs = $scope.wf_get_input_output_statements();
+		var inputs = inputs_outputs[0];
+		var outputs = inputs_outputs[1];
+		var calls = inputs_outputs[2];
+		//console.log('INPUTS:');
+		//console.log(inputs);
+
+		//Add the task
 		var new_node = {"name": $scope.wf_task_name, "type": "task", "children": [], "tools_jstree_data": []};
 		$scope.wf_add_node(new_node);
+
+		//Add the inputs
+		for (var i=0; i<inputs.length; i++) {
+
+			//Add the input node
+			var new_input_node = {"name": inputs[i], "type": "input", "input_to": $scope.wf_task_name, "children": []};
+			$scope.wf_add_node(new_input_node);
+
+			//Create an edge between the task and the input
+			$scope.wf_add_edge(new_node, new_input_node, $scope.wf_task_name + ' --i--> ' + inputs[i]);
+
+		}
+
+		//Add the outputs
+		for (var i=0; i<outputs.length; i++) {
+			//Add the output node
+			var new_output_node = {"name": outputs[i], "type": "output", "output_to": $scope.wf_task_name, "children": []};
+			$scope.wf_add_node(new_output_node);
+
+			//Create an edge betweem the task and the output
+			$scope.wf_add_edge(new_node, new_output_node, $scope.wf_task_name + '--o--> ' + outputs[i]);
+		}
+
+		//Add the calls
+		for (var i=0; i<calls.length; i++) {
+			//Does this node exist?
+			var target_task_node = $scope.wf_get_node(calls[i]);
+
+			if (target_task_node) {
+				//Is this node a task?
+				if (target_task_node.type == 'task') {
+					//This is a task
+					//Add an edge
+					$scope.wf_add_edge(new_node, target_task_node, $scope.wf_task_name + '--c--> ' + target_task_node.name);
+				}
+			}
+		}
+
 		update_workflow($scope.wf);
 	};
 
