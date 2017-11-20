@@ -32,22 +32,26 @@
 	</div>
 	<div class="row">
 		<div class="col-sm-12">
-			<button type="button" class="btn btn-default" ng-click="wf_add_task()">Add Task</button>
-			<button type="button" class="btn btn-default" ng-click="wf_save_workflow()">Save Workflow</button>
+			<button type="button" class="btn btn-default" ng-click="wf_add_task(1)">Add Task</button>
+			<button type="button" class="btn btn-default" ng-click="wf_add_task(2)">Add Workflow</button>
 			<span class="button-checkbox"><button id="add_edge_button" type="button" class="btn" data-color="primary">Add Edge</button><input id="add_edge_checkbox" type="checkbox" class="hidden" /></span>
+			<button type="button" class="btn btn-default" ng-click="wf_clear()">Clear</button>
 		</div>
 	</div>
 	<div class="row">
 		<div class="col-md-12">
 			<form id="wf_task_form" class="form-horizontal" role="form" ng-show="wf_form_task_show">
 				<fieldset>
-					<legend>Task: </legend>
+					<legend><span ng-bind="wf_this_is_workflow ? 'Workflow' : 'Task'"></span>: <span ng-bind="wf_task_name"></span></legend>
 
 					<div class="form-group">
 						<label class="col-sm-2 control-label" for="textinput">Name</label>
 						<div class="col-sm-2">
 							<input id="wf_task_name" type="text" placeholder="" class="form-control" name="wf_task_name" ng-model="wf_task_name">
 						</div>
+						<div class="col-sm-2" ng-show="wf_this_is_workflow"><h5>Edit: <span ng-bind="wf_current_version"></span></h5></div>
+						<div class="col-sm-2" ng-show="wf_this_is_workflow"><h5>User: <span ng-bind="username"></span></h5></div>
+						<div class="col-sm-2" ng-show="wf_this_is_workflow"><h5>Created at: <span ng-bind="wf_created_at"></span></h5></div>
 					</div>
 
 
@@ -114,6 +118,7 @@
 					<div class="form-group">
 						<div class="col-sm-offset-2 col-sm-10">
 							<div class="pull-right">
+								<button class="btn btn-default" ng-click="wf_save_workflow_clicked()" ng-show="wf_this_is_workflow">Save</button>
 								<button class="btn btn-default" ng-click="wf_add_task_clicked()">Add</button>
 								<button class="btn btn-default" ng-click="wf_cancel_task_clicked()">Cancel</button>
 							</div>
@@ -123,19 +128,29 @@
 			</form>
 		</div>
 	</div>
+	<!--
 	<div class="row">
 		<div class="col-md-12">
 			 <form id="wf_form" class="form-horizontal" role="form" ng-show="wf_form_show">
 			 	<fieldset>
-			 		<legend>Workflow: </legend>
+			 		<legend>Workflow: <span ng-bind="wf_name_model"></span></legend>
 			 		<div class="form-group">
 			 			<label class="col-sm-2 control-label" for="textinput">Name</label>
 			 			<div class="col-sm-2">
 			 				<input id="wf_name" type="text" placeholder="" class="form-control" name="wf_name" ng-model="wf_name_model">
 			 			</div>
 			 		</div>
+			 		<div class="form-group">
+			 			<div class="col-sm-offset-2 col-sm-10">
+			 				<div class="pull-right">
+			 					<button class="btn btn-default" ng-click="wf_save_workflow_clicked()">Save</button>
+			 					<button class="btn btn-default" ng-click="wf_cancel_workflow_clicked()">Cancel</button>
+			 				</div>
+			 			</div>
+			 		</div>
 			 	</fieldset>
 			 </form>
 		</div>
 	</div>
+	-->
 </div>

@@ -89,13 +89,16 @@ app.controller('arkalos_Ctrl', function($scope, $http, $timeout) {
 		$scope.wf_error_msg = '';
 		$scope.wf_show = false;
 		$scope.show_wf_tools = false;
-		$scope.wf_form_show = false;
 		$scope.wf_form_task_show = false;
 
 		$scope.wf = {"nodes": [], "links": [], "groups": []};
 
 		$scope.wf_show_tools_data = false;
 		$scope.wf_task_jstree_data = [];
+		$scope.wf_task_name = '';
+		$scope.wf_name_model = '';
+		$scope.wf_current_version = 'N/A';
+		$scope.wf_created_at = 'N/A';
 
 	};
 
@@ -1600,46 +1603,60 @@ app.controller('arkalos_Ctrl', function($scope, $http, $timeout) {
 
 		if (node.type == 'variable') {
 		}
-		else if (node.type == 'task') {
+		else if ((node.type == 'task') || (node.type == 'workflow')) {
 			$scope.wf_form_task_show = true;
 			$scope.wf_task_name = node.name;
 
 			//Add the task tool data in the jstree
-			//console.log('DELETE 2');
-			//console.log(node.tools_jstree_data);
-			//console.log(node);
 			$('#wf_task_jstree').jstree(true).settings.core.data = node.tools_jstree_data;
 			$('#wf_task_jstree').jstree(true).refresh();
+
+			//Add the bash commands
+			task_ace.setValue(node.bash, 1);
+
+			if (node.type == 'task') {
+				$scope.wf_this_is_task = true;
+				$scope.wf_this_is_workflow = false;
+			}
+			else if (node.type == 'workflow') {
+				$scope.wf_this_is_task = false;
+				$scope.wf_this_is_workflow = true;
+			}
 		}
 	};
 
 	/*
-	* Button workflows add task clicked
+	* Button workflows add task button clicked
 	*/
-	$scope.wf_add_task = function() {
+	$scope.wf_add_task = function(kind) {
+
+		if (kind == 1) {
+			$scope.wf_this_is_task = true;
+			$scope.wf_this_is_workflow = false;
+		}
+		else if (kind == 2) {
+			$scope.wf_this_is_task = false;
+			$scope.wf_this_is_workflow = true;
+
+		}
+
 		if ($scope.username == '') {
-			$scope.wf_error_msg = 'Login to add a task in a workflow';
+			$scope.wf_error_msg = 'Login to add a task/workflow';
 			return;
 		}
 		$scope.wf_error_msg = '';
 
-		$scope.wf_form_show = false;
+		$scope.wf_task_name = '';
 		$scope.wf_form_task_show = true;
+
+		//Empty the jstree
+		$('#wf_task_jstree').jstree(true).settings.core.data = [];
+		$('#wf_task_jstree').jstree(true).refresh();
+
+		//Empty bash commands
+		task_ace.setValue('', 1);
 	};
 
-	/*
-	* Button workflows "Save Workdlow" (under the graph) clicked
-	*/
-	$scope.wf_save_workflow = function() {
-		if ($scope.username == '') {
-			$scope.wf_error_msg = 'Login to save a workflow';
-			return;
-		}
-
-		$scope.wf_error_msg = '';
-		$scope.wf_form_show = true;
-		$scope.wf_form_task_show = false;
-	};
 
 	/*
 	* Reads content from task_ace and gets the input and output statement
@@ -1683,10 +1700,16 @@ app.controller('arkalos_Ctrl', function($scope, $http, $timeout) {
 
 
 	/*
-	* Button on workflows add task clicked
+	* Button on workflows/Tasks "add" button clicked
 	*/
 	$scope.wf_add_task_clicked = function() {
 		// tools_data are the dependencies tree
+
+		if ($scope.wf_task_name == '') {
+			$scope.wf_error_msg = 'The name of the task cannot be empty';
+			return;
+		}
+		$scope.wf_error_msg = '';
 
 		var inputs_outputs = $scope.wf_get_input_output_statements();
 		var inputs = inputs_outputs[0];
@@ -1695,8 +1718,10 @@ app.controller('arkalos_Ctrl', function($scope, $http, $timeout) {
 		//console.log('INPUTS:');
 		//console.log(inputs);
 
+		var this_type = $scope.wf_this_is_workflow ? "workflow" : "task";
+
 		//Add the task
-		var new_node = {"name": $scope.wf_task_name, "type": "task", "children": [], "tools_jstree_data": []};
+		var new_node = {"name": $scope.wf_task_name, "type": this_type, "children": [], "tools_jstree_data": [], "bash": task_ace.getValue()};
 		$scope.wf_add_node(new_node);
 
 		//Add the inputs
@@ -1727,8 +1752,8 @@ app.controller('arkalos_Ctrl', function($scope, $http, $timeout) {
 			var target_task_node = $scope.wf_get_node(calls[i]);
 
 			if (target_task_node) {
-				//Is this node a task?
-				if (target_task_node.type == 'task') {
+				//Is this node a task or a workflow?
+				if (target_task_node.type == 'task' || target_task_node.type == 'workflow') {
 					//This is a task
 					//Add an edge
 					$scope.wf_add_edge(new_node, target_task_node, $scope.wf_task_name + '--c--> ' + target_task_node.name);
@@ -1736,6 +1761,7 @@ app.controller('arkalos_Ctrl', function($scope, $http, $timeout) {
 			}
 		}
 
+		$scope.wf_form_task_show = false;
 		update_workflow($scope.wf);
 	};
 
@@ -1747,7 +1773,7 @@ app.controller('arkalos_Ctrl', function($scope, $http, $timeout) {
 	};
 
 	/*
-	* Clicked the "download" glyphicon in clicked variable
+	* Clicked the "download" glyphicon in clicked variable. DEPRECATED
 	*/
 	$scope.wf_import_variable = function() {
 		alert('IMPLEMENT ME!!!'); // or.. delete me
@@ -1755,10 +1781,25 @@ app.controller('arkalos_Ctrl', function($scope, $http, $timeout) {
 	};
 
 	/*
-	* Clicked the show/hide tools/data in workdlow
+	* Clicked the show/hide tools/data in workflow
 	*/
 	$scope.wf_show_tools_data_clicked = function() {
 		$scope.wf_show_tools_data = ! $scope.wf_show_tools_data;
+	};
+
+	/*
+	* Clicked the "save" button in workflow 
+	*/
+	$scope.wf_save_workflow_clicked = function() {
+		alert('implement me');
+	};
+
+	/*
+	* Clicked the "Clear" button in workflo
+	*/
+	$scope.wf_clear = function() {
+		$scope.wf = {"nodes": [], "links": [], "groups": []};
+		$scope.update_workflow();
 	};
 
 	///////////////////////////////////////////////////

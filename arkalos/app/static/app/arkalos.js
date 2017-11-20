@@ -425,8 +425,8 @@ $('.button-checkbox').each(function () {
 		.on('end', function(d) { 
 			console.log("drag end");
 
-					//If this is a task node and the add_edge button is checked
-              		if ((d.type == "task") && ($('#add_edge_button').data().state) == 'on') {
+					//If this is a task node or a workflow node and the add_edge button is checked
+              		if ( ((d.type == "task") || (d.type == "workflow")) && ($('#add_edge_button').data().state) == 'on') {
 
                			console.log('11111');
                			zoom_allowed = false;
@@ -581,6 +581,8 @@ $('.button-checkbox').each(function () {
                				return "LightPink";
                			case "task":
                				return "Gold";
+               			case "workflow":
+               				return "Black";
                			case "input":
                				return "Blue";
                			case "output":
