@@ -94,6 +94,7 @@ app.controller('arkalos_Ctrl', function($scope, $http, $timeout) {
 		$scope.wf = {"nodes": [], "links": [], "groups": []};
 
 		$scope.wf_show_tools_data = false;
+		$scope.wf_show_task_doc = false;
 		$scope.wf_task_jstree_data = [];
 		$scope.wf_task_name = '';
 		$scope.wf_name_model = '';
@@ -646,9 +647,9 @@ app.controller('arkalos_Ctrl', function($scope, $http, $timeout) {
 				$scope.reports_username = response['username'];
 				$scope.reports_created_at = response['created_at'];
 
-				report_ace.setValue(response['markdown']);
-				report_ace.setReadOnly(true);
-				$scope.report_render();
+				report_doc_ace.setValue(response['markdown']);
+				report_doc_ace.setReadOnly(true);
+				$scope.doc_render();
 
 				$scope.report_summary = response['summary']
 
@@ -907,7 +908,7 @@ app.controller('arkalos_Ctrl', function($scope, $http, $timeout) {
 				}
 
 				var md_html = markdown.makeHtml(ret);
-				$('#report_document').html(md_html);
+				$('#report_doc_rendered').html(md_html);
 
 			},
 			function(response) {},
@@ -921,10 +922,11 @@ app.controller('arkalos_Ctrl', function($scope, $http, $timeout) {
 	};
 
 	/*
-	* Clicked update in report
+	* Clicked update in report.
+	* source what to render: "report"
 	*/
-	$scope.report_render = function() {
-		var md_text = report_ace.getValue();
+	$scope.doc_render = function(source) {
+		var md_text = report_doc_ace.getValue();
 		$scope.process_report(md_text);
 
 	};
@@ -953,9 +955,9 @@ app.controller('arkalos_Ctrl', function($scope, $http, $timeout) {
 		$scope.report_current_version = 'N/A';
 		$scope.reports_username = $scope.username;
 		$scope.reports_created_at = 'N/A';
-		report_ace.setValue('', 1);
-		report_ace.setReadOnly(false);
-		$('#report_document').html('');
+		report_doc_ace.setValue('', 1);
+		report_doc_ace.setReadOnly(false);
+		$('#report_doc_rendered').html('');
 		$scope.report_references = [];
 
 		$scope.add_report_dis_new_version = false;
@@ -987,7 +989,7 @@ app.controller('arkalos_Ctrl', function($scope, $http, $timeout) {
 			{
 				'name': $scope.report_name_model,
 				'previous_version': $scope.report_previous_version,
-				'markdown': report_ace.getValue(),
+				'markdown': report_doc_ace.getValue(),
 				'references': $scope.report_references
 			},
 			function(response) {
@@ -1001,7 +1003,7 @@ app.controller('arkalos_Ctrl', function($scope, $http, $timeout) {
 				$scope.add_report_dis_table_clicked = true;
 				$scope.add_report_dis_init = false;
 
-				report_ace.setReadOnly(true);
+				report_doc_ace.setReadOnly(true);
 
 
 			},
@@ -1037,7 +1039,7 @@ app.controller('arkalos_Ctrl', function($scope, $http, $timeout) {
 		$scope.reports_username = $scope.username;
 		$scope.reports_created_at = 'N/A';
 
-		report_ace.setReadOnly(false);
+		report_doc_ace.setReadOnly(false);
 
 
 	};
@@ -1605,7 +1607,6 @@ app.controller('arkalos_Ctrl', function($scope, $http, $timeout) {
 		}
 		else if ((node.type == 'task') || (node.type == 'workflow')) {
 			$scope.wf_form_task_show = true;
-			$scope.wf_task_name = node.name;
 
 			//Add the task tool data in the jstree
 			$('#wf_task_jstree').jstree(true).settings.core.data = node.tools_jstree_data;
@@ -1615,12 +1616,20 @@ app.controller('arkalos_Ctrl', function($scope, $http, $timeout) {
 			task_ace.setValue(node.bash, 1);
 
 			if (node.type == 'task') {
+				$scope.wf_task_name = node.name;
 				$scope.wf_this_is_task = true;
 				$scope.wf_this_is_workflow = false;
 			}
 			else if (node.type == 'workflow') {
+				$scope.wf_task_name = node.workflow_name;
 				$scope.wf_this_is_task = false;
 				$scope.wf_this_is_workflow = true;
+				if (node.current_version) {
+					$scope.wf_current_version = node.current_version;
+				}
+				else {
+					$scope.wf_current_version = 'N/A';
+				}
 			}
 		}
 	};
@@ -1718,10 +1727,26 @@ app.controller('arkalos_Ctrl', function($scope, $http, $timeout) {
 		//console.log('INPUTS:');
 		//console.log(inputs);
 
-		var this_type = $scope.wf_this_is_workflow ? "workflow" : "task";
-
-		//Add the task
-		var new_node = {"name": $scope.wf_task_name, "type": this_type, "children": [], "tools_jstree_data": [], "bash": task_ace.getValue()};
+		//Add the workflow
+		if ($scope.wf_this_is_workflow) {
+			var new_node = {
+				"name": $scope.wf_task_name + ' UNSAVED',
+				"workflow_name":  $scope.wf_task_name,
+				"current_version": null, 
+				"type": "workflow", 
+				"children": [], 
+				"tools_jstree_data": [], 
+				"bash": task_ace.getValue()
+			};
+		}
+		else { // Add the task
+			var new_node = {
+				"name": $scope.wf_task_name, 
+				"type": "task", 
+				"children": [], 
+				"tools_jstree_data": [], 
+				"bash": task_ace.getValue()};
+		}
 		$scope.wf_add_node(new_node);
 
 		//Add the inputs
@@ -1785,6 +1810,13 @@ app.controller('arkalos_Ctrl', function($scope, $http, $timeout) {
 	*/
 	$scope.wf_show_tools_data_clicked = function() {
 		$scope.wf_show_tools_data = ! $scope.wf_show_tools_data;
+	};
+
+	/*
+	* Clicked the show/hide documentation in workflow/tasks
+	*/
+	$scope.wf_show_task_doc_clicked = function() {
+		$scope.wf_show_task_doc = ! $scope.wf_show_task_doc;
 	};
 
 	/*

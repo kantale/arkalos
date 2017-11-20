@@ -23,13 +23,22 @@
     margin-top: 5px;
     }
 
-#report_ace {
+#report_doc_ace {
     height: 175px;
     border: 1px solid #DDD;
     border-radius: 4px;
     border-bottom-right-radius: 0px;
     margin-top: 5px;
     }
+
+#task_doc_ace {
+    height: 175px;
+    border: 1px solid #DDD;
+    border-radius: 4px;
+    border-bottom-right-radius: 0px;
+    margin-top: 5px;
+    }
+
 
 #task_ace {
     height: 175px;

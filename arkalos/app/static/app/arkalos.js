@@ -18,9 +18,13 @@ window.onload = function () {
     window.log_ace.getSession().setMode("ace/mode/text");
     window.log_ace.setReadOnly(true);
 
-	window.report_ace = ace.edit("report_ace");
-    window.report_ace.setTheme("ace/theme/github");
-    window.report_ace.getSession().setMode("ace/mode/markdown");
+	window.report_doc_ace = ace.edit("report_doc_ace");
+    window.report_doc_ace.setTheme("ace/theme/github");
+    window.report_doc_ace.getSession().setMode("ace/mode/markdown");
+
+	window.task_doc_ace = ace.edit("task_doc_ace");
+    window.task_doc_ace.setTheme("ace/theme/github");
+    window.task_doc_ace.getSession().setMode("ace/mode/markdown");
 
     window.task_ace = ace.edit('task_ace');
     window.task_ace.setTheme("ace/theme/github");
