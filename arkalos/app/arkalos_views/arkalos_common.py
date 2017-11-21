@@ -896,3 +896,30 @@ def get_tool_variables(request, **kwargs):
 ####END OF TOOLS / DATA#################
 ########################################
 
+########################################
+######### WORKFLOWS ####################
+########################################
+
+@has_data
+@has_error
+def add_workflow(request, **kwargs):
+    '''
+    Add a new workflow
+    '''
+
+    name = kwargs['name']
+    current_version = kwargs['current_version']
+    bash = kwargs['bash']
+    documentation = kwargs['documentation']
+    dependencies = kwargs['dependencies']
+    calls = kwargs['calls']
+    inputs = kwargs['inputs']
+    outputs = kwargs['outputs']
+
+    ret = {'test': 'ok'}
+
+    return success(ret)
+
+########################################
+####### END OF WORKFLOWS ###############
+########################################

@@ -49,3 +49,16 @@ class Reports(models.Model):
 	references = models.ManyToManyField(Reference)
 	markdown = models.TextField()
 	summary = models.TextField() # Summary of edits
+
+class Tasks(models.Model):
+	user = models.ForeignKey(User)
+	name = models.CharField(max_length=100)
+	current_version = models.PositiveIntegerField()
+	bash = models.TextField()
+	documentation = models.TextField()
+	dependencies = models.ManyToManyField("Tools")
+	created_at = models.DateTimeField(auto_now_add=True,)
+	hash_field = models.CharField(max_length=100, unique=True) # hash field. Do not store redundant tasks
+	is_workflow = models.BooleanField()
+	calls = models.ManyToManyField("Tasks")
+

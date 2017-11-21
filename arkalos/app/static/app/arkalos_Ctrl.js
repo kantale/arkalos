@@ -95,7 +95,6 @@ app.controller('arkalos_Ctrl', function($scope, $http, $timeout) {
 
 		$scope.wf_show_tools_data = false;
 		$scope.wf_show_task_doc = false;
-		$scope.wf_task_jstree_data = [];
 		$scope.wf_task_name = '';
 		$scope.wf_name_model = '';
 		$scope.wf_current_version = 'N/A';
@@ -649,7 +648,7 @@ app.controller('arkalos_Ctrl', function($scope, $http, $timeout) {
 
 				report_doc_ace.setValue(response['markdown']);
 				report_doc_ace.setReadOnly(true);
-				$scope.doc_render();
+				$scope.doc_render('report');
 
 				$scope.report_summary = response['summary']
 
@@ -863,8 +862,9 @@ app.controller('arkalos_Ctrl', function($scope, $http, $timeout) {
 
 	/*
 	* Add references to report
+	* source: report, task, ...
 	*/
-	$scope.process_report = function(report) {
+	$scope.process_report = function(report, source) {
 
 		var all_references = {};
 		var counter = 0;
@@ -908,12 +908,19 @@ app.controller('arkalos_Ctrl', function($scope, $http, $timeout) {
 				}
 
 				var md_html = markdown.makeHtml(ret);
-				$('#report_doc_rendered').html(md_html);
+				$('#' + source + '_doc_rendered').html(md_html);
 
 			},
-			function(response) {},
+			function(response) {
+				alert('This should never happen 765');
+			},
 			function(statusText) {
-				$scope.reports_error_msg = statusText;
+				if (source == 'report') {
+					$scope.reports_error_msg = statusText;
+				}
+				else if (source == 'task') {
+					$scope.wf_error_msg = statusText;
+				}
 			}
 		);
 
@@ -926,8 +933,16 @@ app.controller('arkalos_Ctrl', function($scope, $http, $timeout) {
 	* source what to render: "report"
 	*/
 	$scope.doc_render = function(source) {
-		var md_text = report_doc_ace.getValue();
-		$scope.process_report(md_text);
+		if (source == 'report') {
+			var md_text = report_doc_ace.getValue();
+		}
+		else if (source == 'task') {
+			var md_text = task_doc_ace.getValue();
+		}
+		else {
+			alert('This sould never happen 981');
+		}
+		$scope.process_report(md_text, source);
 
 	};
 
@@ -1246,14 +1261,14 @@ app.controller('arkalos_Ctrl', function($scope, $http, $timeout) {
 	};
 
 	/*
-	* Get the index of a node in the wf
+	* Get the index of a node from the name
 	*/
 	$scope.wf_get_node_index = function(name) {
 		return $scope.wf_get_index('nodes', name)
 	};
 
 	/*
-	* Get the index of an edge in the wf
+	* Get the index of an edge form the name
 	*/
 	$scope.wf_get_edge_index = function(name) {
 		return $scope.wf_get_index('links', name)
@@ -1268,6 +1283,13 @@ app.controller('arkalos_Ctrl', function($scope, $http, $timeout) {
 			return $scope.wf.nodes[index];
 		}
 		return null;
+	};
+
+	/*
+	* Get a node from an index 
+	*/
+	$scope.wf_get_node_from_index = function(index) {
+		return $scope.wf.nodes[index];
 	};
 
 	/*
@@ -1615,6 +1637,9 @@ app.controller('arkalos_Ctrl', function($scope, $http, $timeout) {
 			//Add the bash commands
 			task_ace.setValue(node.bash, 1);
 
+			//Add the documentation
+			task_doc_ace.setValue(node.documentation, 1);
+
 			if (node.type == 'task') {
 				$scope.wf_task_name = node.name;
 				$scope.wf_this_is_task = true;
@@ -1635,7 +1660,7 @@ app.controller('arkalos_Ctrl', function($scope, $http, $timeout) {
 	};
 
 	/*
-	* Button workflows add task button clicked
+	* Button workflows "Add Task" or "Add Workflow" button clicked
 	*/
 	$scope.wf_add_task = function(kind) {
 
@@ -1664,6 +1689,17 @@ app.controller('arkalos_Ctrl', function($scope, $http, $timeout) {
 
 		//Empty bash commands
 		task_ace.setValue('', 1);
+
+		//Empty the documentation ace
+		task_doc_ace.setValue('', 1);
+
+		//Empty the documentation rendered text
+		$('#task_doc_rendered').html('');
+
+		$scope.wf_show_tools_data = false; // Do not show tools/data jstree
+		$scope.wf_show_task_doc = false; // Do not show documentation
+
+
 	};
 
 
@@ -1709,14 +1745,14 @@ app.controller('arkalos_Ctrl', function($scope, $http, $timeout) {
 
 
 	/*
-	* Button on workflows/Tasks "add" button clicked
+	* Button on workflows/Tasks "Add" button clicked
 	*/
 	$scope.wf_add_task_clicked = function() {
 		// tools_data are the dependencies tree
 
 		if ($scope.wf_task_name == '') {
 			$scope.wf_error_msg = 'The name of the task cannot be empty';
-			return;
+			return false;
 		}
 		$scope.wf_error_msg = '';
 
@@ -1727,27 +1763,47 @@ app.controller('arkalos_Ctrl', function($scope, $http, $timeout) {
 		//console.log('INPUTS:');
 		//console.log(inputs);
 
-		//Add the workflow
 		if ($scope.wf_this_is_workflow) {
-			var new_node = {
-				"name": $scope.wf_task_name + ' UNSAVED',
-				"workflow_name":  $scope.wf_task_name,
-				"current_version": null, 
-				"type": "workflow", 
-				"children": [], 
-				"tools_jstree_data": [], 
-				"bash": task_ace.getValue()
-			};
+			var new_node_name = $scope.wf_task_name + ' UNSAVED';
+		}
+		else {
+			var new_node_name = $scope.wf_task_name;
+		}
+
+		//Add the node
+		var new_node_index = $scope.wf_add_node({'name': new_node_name});
+
+		//Get the node
+		var new_node = $scope.wf_get_node_from_index(new_node_index);
+
+		//Add specific additional info
+		if ($scope.wf_this_is_workflow) {
+			new_node.workflow_name =  $scope.wf_task_name;
+			new_node.current_version = null;
+			new_node.type = "workflow";
+			//new_node.children // Do not change this
+			//new_node.tools_jstree_data // Do not change this
 		}
 		else { // Add the task
-			var new_node = {
-				"name": $scope.wf_task_name, 
-				"type": "task", 
-				"children": [], 
-				"tools_jstree_data": [], 
-				"bash": task_ace.getValue()};
+			new_node.type = "task";
+			
 		}
-		$scope.wf_add_node(new_node);
+
+		//Add common (tasks/workflows) info
+		new_node.bash = task_ace.getValue();
+		new_node.documentation = task_doc_ace.getValue();
+		new_node.calls = []; //Will be added later
+		new_node.inputs = []; //Will be added later
+		new_node.outputs = []; //Will be added later
+
+		//All elements should have the children indentity
+		if (!("children" in new_node)) {
+			new_node.children = [];
+		}
+
+		if (!("tools_jstree_data" in new_node)) {
+			new_node.tools_jstree_data = [];
+		}
 
 		//Add the inputs
 		for (var i=0; i<inputs.length; i++) {
@@ -1759,6 +1815,9 @@ app.controller('arkalos_Ctrl', function($scope, $http, $timeout) {
 			//Create an edge between the task and the input
 			$scope.wf_add_edge(new_node, new_input_node, $scope.wf_task_name + ' --i--> ' + inputs[i]);
 
+			//Add the input in inputs
+			new_node.inputs.push(inputs[i]);
+
 		}
 
 		//Add the outputs
@@ -1769,6 +1828,9 @@ app.controller('arkalos_Ctrl', function($scope, $http, $timeout) {
 
 			//Create an edge betweem the task and the output
 			$scope.wf_add_edge(new_node, new_output_node, $scope.wf_task_name + '--o--> ' + outputs[i]);
+
+			//Add the output in outputs
+			new_node.outputs.push(outputs[i]);
 		}
 
 		//Add the calls
@@ -1780,6 +1842,14 @@ app.controller('arkalos_Ctrl', function($scope, $http, $timeout) {
 				//Is this node a task or a workflow?
 				if (target_task_node.type == 'task' || target_task_node.type == 'workflow') {
 					//This is a task
+					//Add the call in "calls" field
+					if (target_task_node.type == 'task') {
+						new_node.calls.push({'name': target_task_node.name, 'current_version': null});
+					}
+					else if (target_task_node.type == 'workflow') {
+						new_node.calls.push({'name': target_task_node.workflow_name, 'current_version': target_task_node.current_version});
+					}
+
 					//Add an edge
 					$scope.wf_add_edge(new_node, target_task_node, $scope.wf_task_name + '--c--> ' + target_task_node.name);
 				}
@@ -1788,6 +1858,8 @@ app.controller('arkalos_Ctrl', function($scope, $http, $timeout) {
 
 		$scope.wf_form_task_show = false;
 		update_workflow($scope.wf);
+
+		return new_node;
 	};
 
 	/*
@@ -1817,13 +1889,53 @@ app.controller('arkalos_Ctrl', function($scope, $http, $timeout) {
 	*/
 	$scope.wf_show_task_doc_clicked = function() {
 		$scope.wf_show_task_doc = ! $scope.wf_show_task_doc;
+
+		if ($scope.wf_show_task_doc) {
+			$timeout(
+				function() {task_doc_ace.resize();},  //https://groups.google.com/forum/#!topic/ace-discuss/TQHqey_NkBg 
+				100
+			);
+		}
 	};
 
 	/*
 	* Clicked the "save" button in workflow 
 	*/
 	$scope.wf_save_workflow_clicked = function() {
-		alert('implement me');
+		if ($scope.username == '') {
+			$scope.wf_error_msg = 'Login to save a workflow';
+		}
+
+		//Attempt to add the workflow in the graph
+		var node = $scope.wf_add_task_clicked()
+		if (node === false ) {
+			return;
+		}
+
+		$scope.wf_error_msg = '';
+
+		$scope.ajax(
+			'add_workflow/',
+			{
+				"name": node.workflow_name,
+				"current_version": node.current_version,
+				"bash": node.bash,
+				"documentation": node.documentation,
+				"dependencies": node.tools_jstree_data,
+				"calls" : node.calls,
+				"inputs": node.inputs,
+				"outputs": node.outputs
+			},
+			function (response) {
+				alert(response['test']);
+			},
+			function(response) {
+				alert('IMPLEMENT ME 156');
+			},
+			function (statusText) {
+				$scope.wf_error_msg = statusText;
+			}
+		);
 	};
 
 	/*
