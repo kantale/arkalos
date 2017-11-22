@@ -1704,7 +1704,7 @@ app.controller('arkalos_Ctrl', function($scope, $http, $timeout) {
 
 
 	/*
-	* Reads content from task_ace and gets the input and output statement
+	* Reads content from task_ace and gets the input, output and call statements
 	*/
 	$scope.wf_get_input_output_statements = function() {
 		var bash = task_ace.getValue();
@@ -1764,7 +1764,7 @@ app.controller('arkalos_Ctrl', function($scope, $http, $timeout) {
 		//console.log(inputs);
 
 		if ($scope.wf_this_is_workflow) {
-			var new_node_name = $scope.wf_task_name + ' UNSAVED';
+			var new_node_name = $scope.wf_task_name + '_UNSAVED';
 		}
 		else {
 			var new_node_name = $scope.wf_task_name;
@@ -1779,7 +1779,7 @@ app.controller('arkalos_Ctrl', function($scope, $http, $timeout) {
 		//Add specific additional info
 		if ($scope.wf_this_is_workflow) {
 			new_node.workflow_name =  $scope.wf_task_name;
-			new_node.current_version = null;
+			new_node.current_version = null; //This indicates that this a new workflow
 			new_node.type = "workflow";
 			//new_node.children // Do not change this
 			//new_node.tools_jstree_data // Do not change this
@@ -1836,19 +1836,35 @@ app.controller('arkalos_Ctrl', function($scope, $http, $timeout) {
 		//Add the calls
 		for (var i=0; i<calls.length; i++) {
 			//Does this node exist?
-			var target_task_node = $scope.wf_get_node(calls[i]);
+			var target_task_node = $scope.wf_get_node(calls[i]); //Get the node by name
 
 			if (target_task_node) {
 				//Is this node a task or a workflow?
 				if (target_task_node.type == 'task' || target_task_node.type == 'workflow') {
 					//This is a task
-					//Add the call in "calls" field
-					if (target_task_node.type == 'task') {
-						new_node.calls.push({'name': target_task_node.name, 'current_version': null});
-					}
-					else if (target_task_node.type == 'workflow') {
-						new_node.calls.push({'name': target_task_node.workflow_name, 'current_version': target_task_node.current_version});
-					}
+					//Add the called node in "calls" field
+//					new_node.calls.push(target_task_node);
+
+					//This is a duplicate with code in wf_save_workflow_clicked . FIXME
+					new_node.calls.push({
+						'name': target_task_node.name,
+						'current_version': target_task_node.type == 'task' ? null :  target_task_node.current_version,
+						'dependencies': target_task_node.tools_jstree_data,
+						'bash': target_task_node.bash,
+						'documentation': target_task_node.documentation,
+						'calls': target_task_node.calls,
+						'inputs': target_task_node.inputs,
+						'outputs': target_task_node.outputs,
+						'is_workflow': target_task_node.type == 'workflow'
+					});
+
+//					if (target_task_node.type == 'task') {
+//						new_node.calls.push({'name': target_task_node.name, 'current_version': null});
+//						
+//					}
+//					else if (target_task_node.type == 'workflow') {
+//						new_node.calls.push({'name': target_task_node.workflow_name, 'current_version': target_task_node.current_version});
+//					}
 
 					//Add an edge
 					$scope.wf_add_edge(new_node, target_task_node, $scope.wf_task_name + '--c--> ' + target_task_node.name);
@@ -1912,25 +1928,29 @@ app.controller('arkalos_Ctrl', function($scope, $http, $timeout) {
 			return;
 		}
 
+		console.log('222');
+
+
 		$scope.wf_error_msg = '';
 
 		$scope.ajax(
 			'add_workflow/',
 			{
 				"name": node.workflow_name,
-				"current_version": node.current_version,
 				"bash": node.bash,
+				"current_version": node.current_version, // This is always null
 				"documentation": node.documentation,
 				"dependencies": node.tools_jstree_data,
 				"calls" : node.calls,
 				"inputs": node.inputs,
-				"outputs": node.outputs
+				"outputs": node.outputs,
+				'is_workflow': true
 			},
 			function (response) {
 				alert(response['test']);
 			},
 			function(response) {
-				alert('IMPLEMENT ME 156');
+				$scope.wf_error_msg = response['error_message'];
 			},
 			function (statusText) {
 				$scope.wf_error_msg = statusText;

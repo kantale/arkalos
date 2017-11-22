@@ -16,6 +16,7 @@ from app.models import Reference, Tools, Reports
 
 import io
 import six
+import hashlib
 import simplejson
 
 #https://pybtex.org/
@@ -900,6 +901,69 @@ def get_tool_variables(request, **kwargs):
 ######### WORKFLOWS ####################
 ########################################
 
+
+def task_hash(task):
+    '''
+    Creates a unique hash for this task
+    '''
+    
+    to_hash = [
+        task['name'],
+        task['bash'],
+        task['documentation'],
+        '@@'.join(['&&'.join((x['name'], str(x['current_version']))) for x in task['dependencies'] if x['type'] == 'tool']),
+        '!!'.join(['**'.join((x['name'], str(x['current_version']) if x['is_workflow'] else 'None')) for x in task['calls']]),
+        '##'.join(task['inputs']),
+        '$$'.join(task['outputs'])
+    ]
+
+    to_hash = '^^'.join(to_hash)
+    to_hash_b = bytearray(to_hash, encoding="utf-8")
+
+    return hashlib.sha256(to_hash_b).hexdigest()
+
+
+def task_hash_dict(workflow):
+    '''
+    Creates a dictionary with:
+    keys: a hashvalue
+    values: the worklfow or task items
+
+    The purpose is to create a "flat" representation of the caller-callee graph
+    '''
+
+    def task_hash_dict_rec(workflow_or_task, current_task_dict): 
+        '''
+        Recursive
+        Create a dictionary for all possible tasks and workflows in this workflow_or_task
+        '''
+
+        h = task_hash(workflow_or_task)
+        if h in current_task_dict:
+            return
+
+        current_task_dict[h] = workflow_or_task
+
+        for call in workflow_or_task['calls']:
+            task_hash_dict_rec(call, current_task_dict)
+
+
+    ret = {}
+    task_hash_dict_rec(workflow, ret)
+    return ret
+
+def save_task_or_workflow(hash_value, workflow_or_task):
+    '''
+    Saves a workflow or task
+    '''
+
+    # Is this a task
+    if workflow_or_task['is_workflow']:
+        # This is a task
+
+        # Does it exist in the database?
+        pass
+
 @has_data
 @has_error
 def add_workflow(request, **kwargs):
@@ -908,13 +972,34 @@ def add_workflow(request, **kwargs):
     '''
 
     name = kwargs['name']
-    current_version = kwargs['current_version']
     bash = kwargs['bash']
     documentation = kwargs['documentation']
     dependencies = kwargs['dependencies']
     calls = kwargs['calls']
     inputs = kwargs['inputs']
     outputs = kwargs['outputs']
+
+    print ("Calls:")
+    print (calls)
+
+    print ("Dependencies")
+    print (dependencies)
+
+    hash_dict = task_hash_dict(kwargs)
+    print ("HASH DICTIONARY:")
+    print (hash_dict)
+
+    # Check if this workflow calls another workflow which is unsaved (this is not allowed)
+    for hash_value, workflow_or_task in hash_dict.items():
+        if workflow_or_task['is_workflow']: # it is a workflow
+            if workflow_or_task['current_version'] is None: # It is not saved
+                if workflow_or_task['name'] != name: #It is not the "root" workflow
+                    return fail('Could not save. Workflow: {} calls an UNSAVED workflow: {}'.format(name,  workflow_or_task['name']))
+
+    # Save all items in hash_dict
+    for hash_value, workflow_or_task in hash_dict.items():
+        save_task_or_workflow(hash_value, workflow_or_task)
+
 
     ret = {'test': 'ok'}
 
