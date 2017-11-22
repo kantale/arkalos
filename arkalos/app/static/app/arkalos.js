@@ -424,15 +424,14 @@ $('.button-checkbox').each(function () {
 
 	var ark_drag = ark_cola.drag()
 		.on('start', function() {
-			console.log("drag start"); 
+			//console.log("drag start"); 
 		})
 		.on('end', function(d) { 
-			console.log("drag end");
+			//console.log("drag end");
 
 					//If this is a task node or a workflow node and the add_edge button is checked
               		if ( ((d.type == "task") || (d.type == "workflow")) && ($('#add_edge_button').data().state) == 'on') {
 
-               			console.log('11111');
                			zoom_allowed = false;
 
                			var new_line = wf_g.append("line");
@@ -456,7 +455,7 @@ $('.button-checkbox').each(function () {
       					//d3.event.preventDefault();
 
 						function mouseup() {
-							console.log("MOUSE UP");
+							//console.log("MOUSE UP");
 	
 //							console.log(d3.mouse(selected_node.node()));
 
@@ -498,8 +497,6 @@ $('.button-checkbox').each(function () {
     							.attr("x2", m[0] - 1)
     							.attr("y2", m[1] - 1);
   						}
-
- 						console.log('2222222');
 
                		}
 
@@ -631,9 +628,7 @@ $('.button-checkbox').each(function () {
         label
            .enter().append("text")
             .attr("class", "label")
-            .text(function (d) {
-            	console.log('TEXT NODE d.name: ' + d.name); 
-            	return d.name; })
+            .text(function (d) {return d.name; })
             .call(ark_cola.drag);
 
         // REMOVE OLD ELEMENTS

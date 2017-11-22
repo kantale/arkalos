@@ -25,6 +25,7 @@ urlpatterns = [
     url(r'^jstree_report/$', views.jstree_report, name='jstree_report'),
 
     url(r'^add_workflow/$', views.add_workflow, name='add_workflow'),
+    url(r'^get_workflows/$', views.get_workflows, name='get_workflows'),
 
 ]
 

@@ -4,7 +4,7 @@ from .arkalos_views import register, login, logout, \
 	add_reference, get_references, get_reference, reference_suggestions, \
 	get_tools, get_tools_ui, add_tool, jstree_tool, jstree_tool_dependencies, get_tool_dependencies, get_tool_variables, \
 	get_reports, get_reports_ui, add_report, jstree_report, \
-	add_workflow
+	add_workflow, get_workflows
 
 def index(request):
 

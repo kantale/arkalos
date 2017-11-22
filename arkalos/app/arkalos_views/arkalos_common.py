@@ -1087,6 +1087,26 @@ def add_workflow(request, **kwargs):
 
     return success(ret)
 
+@has_data
+def get_workflows(request, **kwargs):
+    '''
+    Serve bootstrap table for workflows
+    '''
+
+    bindings = {
+        'name' : 'name',
+        'description': lambda entry: ''
+    }
+
+    #return serve_boostrap_table(Tools, bindings, 'name', **kwargs)
+    return serve_boostrap_table2(
+        model = Tasks,
+        count_f = lambda : Tasks.objects.values('name').annotate(Count('name')).count(),
+        query_f = lambda : Tasks.objects.values('name').annotate(Count('name')),
+        bindings = bindings,
+        **kwargs
+        )
+
 ########################################
 ####### END OF WORKFLOWS ###############
 ########################################

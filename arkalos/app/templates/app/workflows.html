@@ -27,6 +27,23 @@
 	</div>
 	<div class="row">
 		<div class="col-sm-12">
+			<a href ng-click="toggle_show_wf_workflows()"><span ng-bind="show_wf_workflows ? 'Hide' : 'Show'"></span> Workflows table</a>
+		</div>
+	</div>
+	<div class="row" ng-show="show_wf_workflows">
+		<div class="col-sm-12">
+			<table id="wf_workflows_table" data-toggle="table" data-url="/get_workflows/" data-detail-view="true" data-filter-control="true" data-pagination="true" data-side-pagination="server">
+				<thead>
+					<tr>
+						<th data-field="name" data-filter-control="input" data-width="10%">Name</th>
+						<th data-field="description" data-filter-control="input" data-width="90%">Description</th>
+					</tr>
+				</thead>
+			</table>
+		</div>
+	</div>
+	<div class="row">
+		<div class="col-sm-12">
 			<div id="d3wf"></div>
 		</div>
 	</div>

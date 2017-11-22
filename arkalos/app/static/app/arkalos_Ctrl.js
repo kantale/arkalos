@@ -88,12 +88,14 @@ app.controller('arkalos_Ctrl', function($scope, $http, $timeout) {
 
 		$scope.wf_error_msg = '';
 		$scope.wf_show = false;
-		$scope.show_wf_tools = false;
+		$scope.show_wf_tools = false; //Table tools in workflows
+		$scope.show_wf_workflows = false; // Table workflows in workflows
 		$scope.wf_form_task_show = false;
 
 		$scope.wf = {"nodes": [], "links": [], "groups": []};
 
-		$scope.wf_show_tools_data = false;
+		$scope.wf_show_tools_data = false; //Tools/Data jstree
+
 		$scope.wf_show_task_doc = false;
 		$scope.wf_task_name = '';
 		$scope.wf_name_model = '';
@@ -1167,6 +1169,14 @@ app.controller('arkalos_Ctrl', function($scope, $http, $timeout) {
 	$scope.toggle_show_wf_tools = function() {
 		$scope.show_wf_tools = !$scope.show_wf_tools;
 	};
+
+	/*
+	* Clicked show/hide workflows in workflows
+	*/
+	$scope.toggle_show_wf_workflows = function() {
+		$scope.show_wf_workflows = !$scope.show_wf_workflows;
+	};
+
 
 	/*
 	* Add tool to graph. 
