@@ -1792,6 +1792,7 @@ app.controller('arkalos_Ctrl', function($scope, $http, $timeout) {
 		//Add common (tasks/workflows) info
 		new_node.bash = task_ace.getValue();
 		new_node.documentation = task_doc_ace.getValue();
+		//new_node.references = []; // Will be added later
 		new_node.calls = []; //Will be added later
 		new_node.inputs = []; //Will be added later
 		new_node.outputs = []; //Will be added later
@@ -1928,9 +1929,6 @@ app.controller('arkalos_Ctrl', function($scope, $http, $timeout) {
 			return;
 		}
 
-		console.log('222');
-
-
 		$scope.wf_error_msg = '';
 
 		$scope.ajax(
@@ -1947,7 +1945,10 @@ app.controller('arkalos_Ctrl', function($scope, $http, $timeout) {
 				'is_workflow': true
 			},
 			function (response) {
-				alert(response['test']);
+				//alert(response['current_version']);
+				node.current_version = response['current_version'];
+				node.name = node.name + '_' + node.current_version;
+				$scope.update_workflow();
 			},
 			function(response) {
 				$scope.wf_error_msg = response['error_message'];

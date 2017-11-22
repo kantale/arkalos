@@ -53,7 +53,7 @@ class Reports(models.Model):
 class Tasks(models.Model):
 	user = models.ForeignKey(User)
 	name = models.CharField(max_length=100)
-	current_version = models.PositiveIntegerField()
+	current_version = models.PositiveIntegerField(null=True)
 	bash = models.TextField()
 	documentation = models.TextField()
 	dependencies = models.ManyToManyField("Tools")
@@ -61,4 +61,7 @@ class Tasks(models.Model):
 	hash_field = models.CharField(max_length=100, unique=True) # hash field. Do not store redundant tasks
 	is_workflow = models.BooleanField()
 	calls = models.ManyToManyField("Tasks")
+	references = models.ManyToManyField(Reference)
+	inputs = models.TextField() # JSON serialized
+	outputs = models.TextField() # JSON serialized
 

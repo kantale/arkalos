@@ -11,10 +11,11 @@ from django.core.exceptions import ValidationError, ObjectDoesNotExist
 
 from django.db.models import Max, Count
 
-from app.models import Reference, Tools, Reports
+from app.models import Reference, Tools, Reports, Tasks
 
 
 import io
+import re
 import six
 import hashlib
 import simplejson
@@ -534,6 +535,29 @@ def reference_suggestions(request, **kwargs):
     json = simplejson.dumps(ret)
     return HttpResponse(json, content_type='application/json')
 
+def get_references_from_text(text):
+    '''
+    Get all reference objects from a text.
+    This is useful for the report
+    '''
+
+    ret = []
+    all_brackets = re.findall(r'\[[\w]+\]', text)
+    for bracket in all_brackets:
+
+        #Remove brackets
+        code = bracket[1:-1]
+
+        #Check if this a real reference
+        try:
+            ref = Reference.objects.get(code=code)
+        except ObjectDoesNotExist:
+            pass
+        else:
+            ret += [ref]
+
+    return ret
+
 ###############################
 ######END OF REFERENCES########
 ###############################
@@ -952,17 +976,69 @@ def task_hash_dict(workflow):
     task_hash_dict_rec(workflow, ret)
     return ret
 
-def save_task_or_workflow(hash_value, workflow_or_task):
+def save_task_or_workflow(request, hash_value, workflow_or_task):
     '''
     Saves a workflow or task
     '''
 
-    # Is this a task
-    if workflow_or_task['is_workflow']:
-        # This is a task
 
-        # Does it exist in the database?
-        pass
+    if workflow_or_task['is_workflow']:
+        # This is worflow
+        is_workflow = True
+
+        if workflow_or_task['current_version'] is None:
+            # This workflow is not saved
+
+            # Get the current number 
+            current_version = get_maximum_current_version(Tasks, workflow_or_task['name'])
+        else:
+            # This workflow is saved. Find it and return it
+            worklfow = Tasks.objects.get(name=workflow_or_task['name'], current_version=workflow_or_task['current_version'])
+            return worklfow
+    else:
+        # This is a task
+        is_workflow = False
+        current_version = None
+
+        #Check if it exists in the database
+        try:
+            task = Tasks.objects.get(hash_field=hash_value)
+        except ObjectDoesNotExist:
+            pass
+        else:
+            return task
+
+    # It does not exist. Create it!
+    task = Tasks(
+        user=get_user(request),
+        name=workflow_or_task['name'],
+        current_version=current_version,
+        bash=workflow_or_task['bash'],
+        documentation=workflow_or_task['documentation'],
+        hash_field=hash_value,
+        is_workflow=is_workflow,
+        inputs=simplejson.dumps(workflow_or_task['inputs']),
+        outputs=simplejson.dumps(workflow_or_task['outputs']),
+    )
+    task.save()
+
+    # Add dependencies
+    tools = []
+    for dependency in workflow_or_task['dependencies']:
+        if dependency['type'] != 'tool':
+            continue
+
+        tools += [Tools.get(name=dependency['name'], current_version=dependency['current_version'])]
+    task.dependencies.add(*tools)
+    task.save()
+
+    # Add references
+    refs = get_references_from_text(workflow_or_task['documentation'])
+    task.references.add(*refs)
+    task.save()
+
+    return task
+
 
 @has_data
 @has_error
@@ -971,37 +1047,42 @@ def add_workflow(request, **kwargs):
     Add a new workflow
     '''
 
-    name = kwargs['name']
-    bash = kwargs['bash']
-    documentation = kwargs['documentation']
-    dependencies = kwargs['dependencies']
-    calls = kwargs['calls']
-    inputs = kwargs['inputs']
-    outputs = kwargs['outputs']
+    root_hash = task_hash(kwargs)
 
-    print ("Calls:")
-    print (calls)
+#    print ("Calls:")
+#    print (kwargs['calls'])
 
-    print ("Dependencies")
-    print (dependencies)
+#    print ("Dependencies")
+#    print (kwargs['dependencies'])
 
     hash_dict = task_hash_dict(kwargs)
-    print ("HASH DICTIONARY:")
-    print (hash_dict)
+#    print ("HASH DICTIONARY:")
+#    print (hash_dict)
 
     # Check if this workflow calls another workflow which is unsaved (this is not allowed)
     for hash_value, workflow_or_task in hash_dict.items():
         if workflow_or_task['is_workflow']: # it is a workflow
             if workflow_or_task['current_version'] is None: # It is not saved
-                if workflow_or_task['name'] != name: #It is not the "root" workflow
-                    return fail('Could not save. Workflow: {} calls an UNSAVED workflow: {}'.format(name,  workflow_or_task['name']))
+                if workflow_or_task['name'] != kwargs['name']: #It is not the "root" workflow
+                    return fail('Could not save. Workflow: {} calls an UNSAVED workflow: {}'.format(kwargs['name'],  workflow_or_task['name']))
 
-    # Save all items in hash_dict
+    # Save all items in hash_dict and create a new dictionary with the saved objects
+    hash_objects_dict = {
+        hash_value: save_task_or_workflow(request, hash_value, workflow_or_task) 
+        for hash_value, workflow_or_task in hash_dict.items()
+    }
+    
+    #Add the who calls whom information
     for hash_value, workflow_or_task in hash_dict.items():
-        save_task_or_workflow(hash_value, workflow_or_task)
+        this_workflow_called = [hash_objects_dict[task_hash(x)] for x in workflow_or_task['calls']]
+        if this_workflow_called:
+            hash_objects_dict[hash_value].calls.add(*this_workflow_called)
+            hash_objects_dict[hash_value].save()
 
 
-    ret = {'test': 'ok'}
+    ret = {
+        'current_version': hash_objects_dict[root_hash].current_version
+    }
 
     return success(ret)
 
