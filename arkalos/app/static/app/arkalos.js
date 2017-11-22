@@ -560,13 +560,12 @@ $('.button-checkbox').each(function () {
         var pad = 3;
         var node = wf_g.selectAll(".node")
             .data(wf.nodes, function (d) {return d.name;});
-          node.exit().remove();
+        node.exit().remove();
 
         var nodeEnter = node.enter();
         nodeEnter.append("circle")
 //        		.attr("class", "node")
         		.attr("class", function(d) {
-        			console.log(d);
         			return  d.type == 'task' ? 'node task' : 'node' ;
         		})
         		.attr("r", 10)
@@ -619,13 +618,27 @@ $('.button-checkbox').each(function () {
         //Node labels
         var label = wf_g.selectAll(".label")
             .data(wf.nodes, function (d) {return d.name;});
-        label.exit().remove();
-        
+
+  		//Update old elements
+  		label.text(function(d){return d.name});
+
+//		label = wf_g.selectAll(".label")
+//            .data(wf.nodes, function (d) {
+//            	console.log('NODE 2 LABEL d.name: ' + d.name);
+//            	return d.name;})
+
+		//ENTER + UPDATE
         label
            .enter().append("text")
             .attr("class", "label")
-            .text(function (d) { return d.name; })
+            .text(function (d) {
+            	console.log('TEXT NODE d.name: ' + d.name); 
+            	return d.name; })
             .call(ark_cola.drag);
+
+        // REMOVE OLD ELEMENTS
+        label.exit().remove();
+
 
         var label = wf_g.selectAll(".label");
 

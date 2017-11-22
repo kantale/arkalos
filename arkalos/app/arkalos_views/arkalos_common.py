@@ -1081,7 +1081,8 @@ def add_workflow(request, **kwargs):
 
 
     ret = {
-        'current_version': hash_objects_dict[root_hash].current_version
+        'current_version': hash_objects_dict[root_hash].current_version,
+        'created_at': format_time(hash_objects_dict[root_hash].created_at),
     }
 
     return success(ret)

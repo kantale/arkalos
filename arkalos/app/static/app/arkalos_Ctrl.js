@@ -1678,9 +1678,11 @@ app.controller('arkalos_Ctrl', function($scope, $http, $timeout) {
 			$scope.wf_error_msg = 'Login to add a task/workflow';
 			return;
 		}
-		$scope.wf_error_msg = '';
 
+		$scope.wf_error_msg = '';
 		$scope.wf_task_name = '';
+		$scope.wf_current_version = 'N/A';
+		$scope.wf_created_at = 'N/A';
 		$scope.wf_form_task_show = true;
 
 		//Empty the jstree
@@ -1945,10 +1947,14 @@ app.controller('arkalos_Ctrl', function($scope, $http, $timeout) {
 				'is_workflow': true
 			},
 			function (response) {
-				//alert(response['current_version']);
+				$scope.wf_current_version = response['current_version'];
+				$scope.wf_created_at = response['created_at'];
+
 				node.current_version = response['current_version'];
-				node.name = node.name + '_' + node.current_version;
+				node.name = node.workflow_name + '_' + node.current_version;
 				$scope.update_workflow();
+
+				console.log($scope.wf);
 			},
 			function(response) {
 				$scope.wf_error_msg = response['error_message'];
