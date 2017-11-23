@@ -628,6 +628,39 @@ app.controller('arkalos_Ctrl', function($scope, $http, $timeout) {
 		);
 	};
 
+	$scope.wf_create_jstree = function(name, jstree_id, prefix, on_select) {
+		$scope.ajax(
+			'jstree_wf/',
+			{
+				'name': name,
+				'prefix': prefix
+			},
+			function(response) {
+				var r_jstree = response['jstree'];
+				var jstree_id_jq = '#' + jstree_id;
+
+				$(jstree_id_jq).on('refresh.jstree', function() {
+					$(jstree_id_jq).jstree("open_all");
+				});
+
+				$(jstree_id_jq).on('select_node.jstree', function(e, data){
+					row = {'name': data.node.original.name, 'current_version': data.node.original.current_version};
+					//$scope.reports_table_row_clicked(row);
+				});
+
+				$(jstree_id_jq).jstree(true).settings.core.data = r_jstree;
+				$(jstree_id_jq).jstree(true).refresh();		
+
+			},
+			function(response) {
+				alert('FAIL654');
+			},
+			function(statusText) {
+				alert('FAIL7818');
+			}
+		);
+	};
+
 	/*
 	* A report was selected. TODO: MOVE TO REPORTS RECTION
 	*/

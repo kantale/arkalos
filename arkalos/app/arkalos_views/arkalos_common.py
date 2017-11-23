@@ -876,6 +876,23 @@ def jstree_report(request, **kwargs):
 
     return success(ret)
 
+
+@has_data
+@has_error
+def jstree_wf(request, **kwargs):
+    '''
+    AJAX backend to get the version jstree for a tool
+    '''
+
+    name = kwargs['name']
+    prefix = kwargs['prefix']
+    ret = {
+        'jstree' : build_jstree(Tasks, name, prefix=prefix),
+    }
+
+    return success(ret)
+
+
 @has_data
 @has_error
 def jstree_tool_dependencies(request, **kwargs):
@@ -1150,7 +1167,7 @@ def get_workflows(request, **kwargs):
     '''
 
     def description(entry):
-        ret = '<p>Edits: <strong>%i</strong> Users: <strong>%i</strong><br />Last documentation: %s</p>' % (entry.edits, entry.users, entry.last_edit.documentation)
+        ret = '<p>Edits: <strong>%i</strong> Users: <strong>%i</strong> Last Edit: <strong>%s</strong><br />Last documentation: %s</p>' % (entry.edits, entry.users, format_time(entry.last_edit.created_at), entry.last_edit.documentation)
         return ret
 
     bindings = {

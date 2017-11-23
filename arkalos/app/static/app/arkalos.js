@@ -146,7 +146,7 @@ $('#reports_table').on('expand-row.bs.table', function (e, index, row, $detail) 
 });
 
 
-//wf_tools_table : The table on workflows
+//wf_tools_table : The Tools/Data table on workflows
 $('#wf_tools_table').on('expand-row.bs.table', function (e, index, row, $detail) {
 	var this_id = "wf_tools_table_" + index;
 
@@ -158,6 +158,21 @@ $('#wf_tools_table').on('expand-row.bs.table', function (e, index, row, $detail)
 })
 .on('collapse-row.bs.table', function(e, index, row) {
 	var this_id ="wf_tools_table_" + index;
+	$('#' + this_id).jstree("destroy");
+});
+
+//wf_workflows_table: The workflows table on workflows 
+$('#wf_workflows_table').on('expand-row.bs.table', function (e, index, row, $detail) {
+	var this_id = "wf_workflows_table_" + index;
+
+	$detail.html('<div id="' + this_id + '"></div><script>$("#' + this_id + '").jstree({"core": {check_callback: true}, "plugins": ["dnd"]});</script>');
+
+	angular.element($('#tools_table')).scope().$apply(function(){
+		angular.element($('#tools_table')).scope().wf_create_jstree(row['name'], this_id, '6', '');
+	});	
+})
+.on('collapse-row.bs.table', function(e, index, row) {
+	var this_id ="wf_workflows_table_" + index;
 	$('#' + this_id).jstree("destroy");
 });
 
