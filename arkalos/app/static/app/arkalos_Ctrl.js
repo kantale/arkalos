@@ -1792,6 +1792,7 @@ app.controller('arkalos_Ctrl', function($scope, $http, $timeout) {
 		if ($scope.wf_this_is_workflow) {
 			new_node.workflow_name =  $scope.wf_task_name;
 			new_node.current_version = null; //This indicates that this a new workflow
+			new_node.previous_version = null;
 			new_node.type = "workflow";
 			//new_node.children // Do not change this
 			//new_node.tools_jstree_data // Do not change this
@@ -1862,6 +1863,7 @@ app.controller('arkalos_Ctrl', function($scope, $http, $timeout) {
 					new_node.calls.push({
 						'name': target_task_node.name,
 						'current_version': target_task_node.type == 'task' ? null :  target_task_node.current_version,
+						'previous_version': target_task_node.type == 'task' ? null :  target_task_node.previous_version,
 						'dependencies': target_task_node.tools_jstree_data,
 						'bash': target_task_node.bash,
 						'documentation': target_task_node.documentation,
@@ -1949,6 +1951,7 @@ app.controller('arkalos_Ctrl', function($scope, $http, $timeout) {
 				"name": node.workflow_name,
 				"bash": node.bash,
 				"current_version": node.current_version, // This is always null
+				"previous_version": node.previous_version,
 				"documentation": node.documentation,
 				"dependencies": node.tools_jstree_data,
 				"calls" : node.calls,

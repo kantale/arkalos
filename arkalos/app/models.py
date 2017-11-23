@@ -53,6 +53,7 @@ class Reports(models.Model):
 class Tasks(models.Model):
 	user = models.ForeignKey(User)
 	name = models.CharField(max_length=100)
+	previous_version = models.PositiveIntegerField(null=True)
 	current_version = models.PositiveIntegerField(null=True)
 	bash = models.TextField()
 	documentation = models.TextField()
@@ -64,4 +65,19 @@ class Tasks(models.Model):
 	references = models.ManyToManyField(Reference)
 	inputs = models.TextField() # JSON serialized
 	outputs = models.TextField() # JSON serialized
+
+class TasksStats(models.Model):
+	'''
+	Every unique name has stats
+	'''
+	name = models.CharField(max_length=100, unique=True)
+	edits =  models.PositiveIntegerField()
+	users = models.PositiveIntegerField()
+	last_edit = models.ForeignKey(Tasks)
+
+	def __str__(self):
+		'''
+		Human readable repo
+		'''
+		pass
 

@@ -11,7 +11,7 @@ from django.core.exceptions import ValidationError, ObjectDoesNotExist
 
 from django.db.models import Max, Count
 
-from app.models import Reference, Tools, Reports, Tasks
+from app.models import Reference, Tools, Reports, Tasks, TasksStats
 
 
 import io
@@ -179,13 +179,15 @@ def bootstrap_table_format_field(entry, value):
     elif callable(value):
         return value(entry)
 
-def serve_boostrap_table2(model, count_f, query_f, bindings, **kwargs):
+def serve_boostrap_table2(model, query_f, filters, bindings, **kwargs):
     '''
     count_f = Tools.objects.values('name', 'url').annotate(Count('name')).count()
     query_f = Tools.objects.values('name', 'url').annotate(Count('name'))
+
+    IT DOES NOT USE count_f !
     '''
 
-    count = count_f()
+    #count = count_f()
 
     order = kwargs['order'] 
     offset = kwargs['offset']
@@ -198,8 +200,18 @@ def serve_boostrap_table2(model, count_f, query_f, bindings, **kwargs):
         # "read" the filter
         filter_ = kwargs['filter']
         filter_ = simplejson.loads(filter_)
+        print ("Filter:")
+        print (filter_)
+        applied_filters = {filters[f][0](): filters[f][1](f_value)  for f, f_value in filter_.items() if f in filters}
+        print ("Applied filters:")
+        print (applied_filters)
+
     else:
-        querySet = query_f()
+        applied_filters = {}
+    
+    querySet = query_f(applied_filters)
+    count = querySet.count()
+    querySet = querySet[from_offset:to_offset]
 
     ret = {'total': count}
     ret['rows'] = [ {k: bootstrap_table_format_field(entry, v) for k, v in bindings.items()} for entry in querySet]
@@ -573,7 +585,7 @@ def get_reports(request, **kwargs):
     '''
     bindings = {
         'name': 'name',
-        'total_edits': lambda entry: entry['name__count'],
+        #'total_edits': lambda entry: entry['name__count'],
         'content': lambda entry : ''
     }
 
@@ -581,9 +593,12 @@ def get_reports(request, **kwargs):
 
     return serve_boostrap_table2(
         model = Reports,
-        count_f = lambda : Reports.objects.values('name').annotate(Count('name')).count(),
-        query_f = lambda : Reports.objects.values('name').annotate(Count('name')),
+        #count_f = lambda : Reports.objects.values('name').annotate(Count('name')).count(),
+        query_f = lambda x : Reports.objects.filter(**x).values('name').distinct(),
         bindings = bindings,
+        filters = {
+            'name': (lambda : 'name__icontains', lambda x : x) # name_contains = x
+        },
         **kwargs
         )
 
@@ -679,7 +694,7 @@ def get_tools(request, **kwargs):
     bindings = {
         'name' : 'name',
         'url': lambda entry : '<a href="{}" target="_blank">{}</a>'.format(entry['url'], entry['url']),
-        'total_edits': lambda entry: entry['name__count'],
+        #'total_edits': lambda entry: entry['name__count'],
         'description': lambda entry: ''
 
         #'current_version': lambda entry: '{} -- {}'.format(entry.current_version, entry.previous_version),
@@ -691,8 +706,11 @@ def get_tools(request, **kwargs):
     #return serve_boostrap_table(Tools, bindings, 'name', **kwargs)
     return serve_boostrap_table2(
         model = Tools,
-        count_f = lambda : Tools.objects.values('name', 'url').annotate(Count('name')).count(),
-        query_f = lambda : Tools.objects.values('name', 'url').annotate(Count('name')),
+        #count_f = lambda : Tools.objects.values('name', 'url').annotate(Count('name')).count(),
+        query_f = lambda x : Tools.objects.values('name', 'url').annotate(Count('name')),
+        filters = {
+
+        },
         bindings = bindings,
         **kwargs
         )
@@ -989,6 +1007,8 @@ def save_task_or_workflow(request, hash_value, workflow_or_task):
         if workflow_or_task['current_version'] is None:
             # This workflow is not saved
 
+            # Get the previous_version
+            previous_version = workflow_or_task['previous_version']
             # Get the current number 
             current_version = get_maximum_current_version(Tasks, workflow_or_task['name'])
         else:
@@ -999,6 +1019,7 @@ def save_task_or_workflow(request, hash_value, workflow_or_task):
         # This is a task
         is_workflow = False
         current_version = None
+        previous_version = None
 
         #Check if it exists in the database
         try:
@@ -1013,6 +1034,7 @@ def save_task_or_workflow(request, hash_value, workflow_or_task):
         user=get_user(request),
         name=workflow_or_task['name'],
         current_version=current_version,
+        previous_version=previous_version,
         bash=workflow_or_task['bash'],
         documentation=workflow_or_task['documentation'],
         hash_field=hash_value,
@@ -1039,6 +1061,30 @@ def save_task_or_workflow(request, hash_value, workflow_or_task):
 
     return task
 
+def update_TasksStats(task):
+    '''
+    Update the stats of this task
+    '''
+
+    name = task.name
+
+    try:
+        taskStat = TasksStats.objects.get(name=name)
+    except ObjectDoesNotExist:
+        taskStat = TasksStats(
+            name=name,
+            edits=1,
+            users=1,
+            last_edit=task,
+        )
+    else:
+        taskStat.edits += 1
+        taskStat.users = Tasks.objects.filter(name=name).values('user').count()
+        taskStat.last_edit=task
+    finally:
+        taskStat.save()
+
+
 
 @has_data
 @has_error
@@ -1058,6 +1104,14 @@ def add_workflow(request, **kwargs):
     hash_dict = task_hash_dict(kwargs)
 #    print ("HASH DICTIONARY:")
 #    print (hash_dict)
+
+    # Check if there is another workflow with the same name
+    if kwargs['is_workflow']: # Redundant but anyway... maybe it should be assert
+        if kwargs['previous_version'] is None: # It is a new workflow! 
+            # There shouldn't be another workflow with this name
+            if db_exists(Tasks, {'name': kwargs['name']}):
+                return fail('Another workflow with this name exists. Please choose another name')
+
 
     # Check if this workflow calls another workflow which is unsaved (this is not allowed)
     for hash_value, workflow_or_task in hash_dict.items():
@@ -1079,6 +1133,8 @@ def add_workflow(request, **kwargs):
             hash_objects_dict[hash_value].calls.add(*this_workflow_called)
             hash_objects_dict[hash_value].save()
 
+    #Update TaskStats. Perhaps can be done better with signals
+    update_TasksStats(hash_objects_dict[root_hash])
 
     ret = {
         'current_version': hash_objects_dict[root_hash].current_version,
@@ -1093,16 +1149,23 @@ def get_workflows(request, **kwargs):
     Serve bootstrap table for workflows
     '''
 
+    def description(entry):
+        ret = '<p>Edits: <strong>%i</strong> Users: <strong>%i</strong><br />Last documentation: %s</p>' % (entry.edits, entry.users, entry.last_edit.documentation)
+        return ret
+
     bindings = {
         'name' : 'name',
-        'description': lambda entry: ''
+        'description': description,
     }
 
     #return serve_boostrap_table(Tools, bindings, 'name', **kwargs)
     return serve_boostrap_table2(
-        model = Tasks,
-        count_f = lambda : Tasks.objects.values('name').annotate(Count('name')).count(),
-        query_f = lambda : Tasks.objects.values('name').annotate(Count('name')),
+        model = TasksStats,
+        #count_f = lambda : Tasks.objects.values('name').count(), # COUNT ALL
+        query_f = lambda x : TasksStats.objects.filter(**x), # Query function
+        filters = {
+            'name': (lambda : 'name__icontains', lambda x : x) # name_contains = x
+        },
         bindings = bindings,
         **kwargs
         )
