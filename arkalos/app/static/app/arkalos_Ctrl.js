@@ -1210,10 +1210,33 @@ app.controller('arkalos_Ctrl', function($scope, $http, $timeout) {
 		$scope.show_wf_workflows = !$scope.show_wf_workflows;
 	};
 
+	/*
+	* Add workflow in graph
+	* Get called from arkalos.js
+	*/
+	$scope.wf_add_workflow_in_graph = function(row, update, dependencies) {
+		console.log(row);
+		$scope.ajax(
+			'get_workflow/',
+			{
+				'name': row['name'],
+				'current_version': row['current_version']
+			},
+			function (response) {
+				console.log(response['test']);
+			},
+			function (response) {
+				alert('This should not happen 581');
+			},
+			function (statusText) {
+				$scope.wf_error_msg = statusText;
+			}
+		);
+	};
 
 	/*
 	* Add tool to graph. 
-	* It gets called from here as well from arcalos.js Drag and drop from table
+	* It gets called from here as well from arkalos.js Drag and drop from table
 	*/
 	$scope.wf_add_tool_in_graph = function(row, update, dependencies) {
 
@@ -1231,7 +1254,7 @@ app.controller('arkalos_Ctrl', function($scope, $http, $timeout) {
 				},
 				function(response) {
 
-					$scope.wf["nodes"].push({
+					$scope.wf["nodes"].wf_add_node({
 						"name": new_node_node_name, 
 						"type": "tool", 
 						"current_version": row['current_version'], 
@@ -1255,7 +1278,7 @@ app.controller('arkalos_Ctrl', function($scope, $http, $timeout) {
 		else {
 			// We have the dependencies. No need for ajax
 
-			$scope.wf["nodes"].push({
+			$scope.wf["nodes"].wf_add_node({
 				"name": new_node_node_name, 
 				"type": "tool", 
 				"current_version": row['current_version'], 
@@ -1276,7 +1299,7 @@ app.controller('arkalos_Ctrl', function($scope, $http, $timeout) {
 	*/
 	$scope.wf_add_variable_in_graph = function(variable, row) {
 		var new_node_node_name = variable[0];
-		$scope.wf["nodes"].push({
+		$scope.wf["nodes"].wf_add_node({
 			"name": new_node_node_name, 
 			"type": "variable", 
 			"current_version": row["current_version"], 
@@ -1352,6 +1375,19 @@ app.controller('arkalos_Ctrl', function($scope, $http, $timeout) {
 //		return ret;
 //	};
 
+	/*
+	* Copied from: https://stackoverflow.com/questions/105034/create-guid-uuid-in-javascript 
+	*/
+	$scope.guid = function() {
+		  function s4() {
+		    return Math.floor((1 + Math.random()) * 0x10000)
+		      .toString(16)
+		      .substring(1);
+		  }
+		  return s4() + s4() + '-' + s4() + '-' + s4() + '-' +
+		    s4() + '-' + s4() + s4() + s4();
+	};
+
 	/* 
 	* Add a node to the graph
 	*/
@@ -1360,6 +1396,10 @@ app.controller('arkalos_Ctrl', function($scope, $http, $timeout) {
 		var index = $scope.wf_get_node_index(node.name);
 		if (index == -1) {
 			//It does not exist. Add it.
+			if (!('guid' in node)) {
+				//Add a unique id in node
+				node['guid'] = $scope.guid();
+			} 
 			$scope.wf["nodes"].push(node);
 			return $scope.wf["nodes"].length-1;
 		}
@@ -1662,7 +1702,7 @@ app.controller('arkalos_Ctrl', function($scope, $http, $timeout) {
 
 	/*
 	* clicked a node in wf
-	* IMPORTANT TODO: Distibguish between double click and click. This is fired two time in double click!
+	* IMPORTANT TODO: Distinguish between double click and click. This is fired two times in double click!
 	*/
 	$scope.wf_node_click = function(node) {
 		//alert('CLICKED!');
@@ -1821,11 +1861,12 @@ app.controller('arkalos_Ctrl', function($scope, $http, $timeout) {
 		//Get the node
 		var new_node = $scope.wf_get_node_from_index(new_node_index);
 
+		console.log('Found node:');
+		console.log(new_node);
+
 		//Add specific additional info
 		if ($scope.wf_this_is_workflow) {
 			new_node.workflow_name =  $scope.wf_task_name;
-			new_node.current_version = null; //This indicates that this a new workflow
-			new_node.previous_version = null;
 			new_node.type = "workflow";
 			//new_node.children // Do not change this
 			//new_node.tools_jstree_data // Do not change this
@@ -1836,6 +1877,9 @@ app.controller('arkalos_Ctrl', function($scope, $http, $timeout) {
 		}
 
 		//Add common (tasks/workflows) info
+
+		new_node.current_version = null; 
+		new_node.previous_version = null;
 		new_node.bash = task_ace.getValue();
 		new_node.documentation = task_doc_ace.getValue();
 		//new_node.references = []; // Will be added later
@@ -1889,22 +1933,8 @@ app.controller('arkalos_Ctrl', function($scope, $http, $timeout) {
 				//Is this node a task or a workflow?
 				if (target_task_node.type == 'task' || target_task_node.type == 'workflow') {
 					//This is a task
-					//Add the called node in "calls" field
-//					new_node.calls.push(target_task_node);
-
-					//This is a duplicate with code in wf_save_workflow_clicked . FIXME
-					new_node.calls.push({
-						'name': target_task_node.name,
-						'current_version': target_task_node.type == 'task' ? null :  target_task_node.current_version,
-						'previous_version': target_task_node.type == 'task' ? null :  target_task_node.previous_version,
-						'dependencies': target_task_node.tools_jstree_data,
-						'bash': target_task_node.bash,
-						'documentation': target_task_node.documentation,
-						'calls': target_task_node.calls,
-						'inputs': target_task_node.inputs,
-						'outputs': target_task_node.outputs,
-						'is_workflow': target_task_node.type == 'workflow'
-					});
+					//Add the called node in "calls" field. This creates the problem that the new_node is not serializable (might contain itself..) 
+					new_node.calls.push(target_task_node);
 
 //					if (target_task_node.type == 'task') {
 //						new_node.calls.push({'name': target_task_node.name, 'current_version': null});
@@ -1922,6 +1952,8 @@ app.controller('arkalos_Ctrl', function($scope, $http, $timeout) {
 
 		$scope.wf_form_task_show = false;
 		update_workflow($scope.wf);
+		console.log('Just added this node:');
+		console.log(new_node);
 
 		return new_node;
 	};
@@ -1963,6 +1995,51 @@ app.controller('arkalos_Ctrl', function($scope, $http, $timeout) {
 	};
 
 	/*
+	* Take a workflow node and seriazize it. This is necessary before ajax calls
+	*/
+	$scope.wf_serialize_workflow = function(node) {
+		var all_guids = {};
+		var serialized = [];
+
+		function serialize(node) {
+			return {
+				"name": node.type == 'workflow' ? node.workflow_name : node.name,
+				"bash": node.bash,
+				"current_version": node.current_version, // This is always null
+				"previous_version": node.previous_version,
+				"documentation": node.documentation,
+				"dependencies": node.tools_jstree_data,
+				"serial_calls" : node.serial_calls,
+				"inputs": node.inputs,
+				"outputs": node.outputs,
+				"type": node.type,
+				"guid": node.guid
+			};
+		}
+
+		function serialize_recursive(node) {
+			if (!(node.guid in all_guids)) {
+				all_guids[node.guid] = null;
+			}
+			else {
+				return;
+			}
+
+			node.serial_calls = [];
+			for (var i=0; i<node.calls.length; i++) {
+				serialize_recursive(node.calls[i]);
+				node.serial_calls.push(node.calls[i].guid);
+			}
+
+			serialized.push(serialize(node));
+		}
+
+		serialize_recursive(node);
+		return serialized;
+
+	};
+
+	/*
 	* Clicked the "save" button in workflow 
 	*/
 	$scope.wf_save_workflow_clicked = function() {
@@ -1981,17 +2058,21 @@ app.controller('arkalos_Ctrl', function($scope, $http, $timeout) {
 		$scope.ajax(
 			'add_workflow/',
 			{
-				"name": node.workflow_name,
-				"bash": node.bash,
-				"current_version": node.current_version, // This is always null
-				"previous_version": node.previous_version,
-				"documentation": node.documentation,
-				"dependencies": node.tools_jstree_data,
-				"calls" : node.calls,
-				"inputs": node.inputs,
-				"outputs": node.outputs,
-				'is_workflow': true
+				'graph': $scope.wf_serialize_workflow(node),
+				'main_guid': node.guid
 			},
+//			{
+//				"name": node.workflow_name,
+//				"bash": node.bash,
+//				"current_version": node.current_version, // This is always null
+//				"previous_version": node.previous_version,
+//				"documentation": node.documentation,
+//				"dependencies": node.tools_jstree_data,
+//				"calls" : node.calls,
+//				"inputs": node.inputs,
+//				"outputs": node.outputs,
+//				"is_workflow": true
+//			},
 			function (response) {
 				$scope.wf_current_version = response['current_version'];
 				$scope.wf_created_at = response['created_at'];

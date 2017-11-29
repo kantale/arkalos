@@ -960,20 +960,59 @@ def get_tool_variables(request, **kwargs):
 ######### WORKFLOWS ####################
 ########################################
 
+def jason_or_django(f):
+    '''
+    getattr and iterate methods for JSON or DJANGO objects
+    '''
+    def dec(*args, **kwargs):
 
-def task_hash(task):
+        if type(args[0]) is dict:
+            attr = lambda x,y : x[y]
+            iterate = lambda x,y : (k for k in x[y])
+        elif type(args[0]) is Tasks:
+            attr = lambda x,y : getattr(x,y)
+            iterate = lambda x,y : (k for k in getattr(x,y).all())
+        else:
+            raise ArkalosException('This should never happen: {}'.format(type(task)))
+
+        kwargs['attr'] = attr
+        kwargs['iterate'] = iterate
+
+        return f(*args, **kwargs)
+
+    return dec
+
+@jason_or_django
+def task_hash(task, **kwargs):
     '''
     Creates a unique hash for this task
+    attr: Get attribute
+    iterate: Iterator 
     '''
+
+    attr = kwargs['attr']
+    iterate = kwargs['iterate']
     
+# Dictionary version
+#    to_hash = [
+#        task['name'],
+#        task['bash'],
+#        task['documentation'],
+#        '@@'.join(['&&'.join((x['name'], str(x['current_version']))) for x in task['dependencies'] if x['type'] == 'tool']),
+#        '!!'.join(['**'.join((x['name'], str(x['current_version']) if x['is_workflow'] else 'None')) for x in task['calls']]),
+#        '##'.join(task['inputs']),
+#        '$$'.join(task['outputs'])
+#    ]
+
+    # This works with both dictionary and django database objects
     to_hash = [
-        task['name'],
-        task['bash'],
-        task['documentation'],
-        '@@'.join(['&&'.join((x['name'], str(x['current_version']))) for x in task['dependencies'] if x['type'] == 'tool']),
-        '!!'.join(['**'.join((x['name'], str(x['current_version']) if x['is_workflow'] else 'None')) for x in task['calls']]),
-        '##'.join(task['inputs']),
-        '$$'.join(task['outputs'])
+        attr(task, 'name'),
+        attr(task, 'bash'),
+        attr(task, 'documentation'),
+        '@@'.join(['&&'.join((attr(x, 'name'), str(attr(x, 'current_version')))) for x in iterate(task, 'dependencies')]),
+        '!!'.join(['**'.join((attr(x, 'name'), str(attr(x, 'current_version')) if attr(x, 'current_version') else 'None')) for x in iterate(task, 'calls')]),
+        '##'.join(attr(task, 'inputs')),
+        '$$'.join(attr(task, 'outputs')),
     ]
 
     to_hash = '^^'.join(to_hash)
@@ -982,40 +1021,10 @@ def task_hash(task):
     return hashlib.sha256(to_hash_b).hexdigest()
 
 
-def task_hash_dict(workflow):
-    '''
-    Creates a dictionary with:
-    keys: a hashvalue
-    values: the worklfow or task items
-
-    The purpose is to create a "flat" representation of the caller-callee graph
-    '''
-
-    def task_hash_dict_rec(workflow_or_task, current_task_dict): 
-        '''
-        Recursive
-        Create a dictionary for all possible tasks and workflows in this workflow_or_task
-        '''
-
-        h = task_hash(workflow_or_task)
-        if h in current_task_dict:
-            return
-
-        current_task_dict[h] = workflow_or_task
-
-        for call in workflow_or_task['calls']:
-            task_hash_dict_rec(call, current_task_dict)
-
-
-    ret = {}
-    task_hash_dict_rec(workflow, ret)
-    return ret
-
-def save_task_or_workflow(request, hash_value, workflow_or_task):
+def save_task_or_workflow(request, workflow_or_task):
     '''
     Saves a workflow or task
     '''
-
 
     if workflow_or_task['is_workflow']:
         # This is worflow
@@ -1037,10 +1046,11 @@ def save_task_or_workflow(request, hash_value, workflow_or_task):
         is_workflow = False
         current_version = None
         previous_version = None
+        
 
         #Check if it exists in the database
         try:
-            task = Tasks.objects.get(hash_field=hash_value)
+            task = Tasks.objects.get(hash_field=workflow_or_task['hash_value'])
         except ObjectDoesNotExist:
             pass
         else:
@@ -1054,7 +1064,7 @@ def save_task_or_workflow(request, hash_value, workflow_or_task):
         previous_version=previous_version,
         bash=workflow_or_task['bash'],
         documentation=workflow_or_task['documentation'],
-        hash_field=hash_value,
+        hash_field=workflow_or_task['hash_value'],
         is_workflow=is_workflow,
         inputs=simplejson.dumps(workflow_or_task['inputs']),
         outputs=simplejson.dumps(workflow_or_task['outputs']),
@@ -1067,7 +1077,7 @@ def save_task_or_workflow(request, hash_value, workflow_or_task):
         if dependency['type'] != 'tool':
             continue
 
-        tools += [Tools.get(name=dependency['name'], current_version=dependency['current_version'])]
+        tools += [Tools.objects.get(name=dependency['name'], current_version=dependency['current_version'])]
     task.dependencies.add(*tools)
     task.save()
 
@@ -1110,55 +1120,133 @@ def add_workflow(request, **kwargs):
     Add a new workflow
     '''
 
-    root_hash = task_hash(kwargs)
+    graph = kwargs['graph']
+    main_guid = kwargs['main_guid']
 
-#    print ("Calls:")
-#    print (kwargs['calls'])
+    #Fix is_workflow
+    for node in graph:
+        node['is_workflow'] = node['type'] == 'workflow'
 
-#    print ("Dependencies")
-#    print (kwargs['dependencies'])
+    #Take main node
+    main_node = None
+    for node in graph:
+        if node['guid'] == main_guid:
+            main_node = node
+            break
 
-    hash_dict = task_hash_dict(kwargs)
-#    print ("HASH DICTIONARY:")
-#    print (hash_dict)
+    assert not (main_node is None)
+    assert main_node['is_workflow']
 
     # Check if there is another workflow with the same name
-    if kwargs['is_workflow']: # Redundant but anyway... maybe it should be assert
-        if kwargs['previous_version'] is None: # It is a new workflow! 
-            # There shouldn't be another workflow with this name
-            if db_exists(Tasks, {'name': kwargs['name']}):
-                return fail('Another workflow with this name exists. Please choose another name')
-
+    if main_node['previous_version'] is None: # It is a new workflow! 
+        if db_exists(Tasks, {'name': main_node['name']}):
+            return fail('Another workflow with this name exists. Please choose another name')
 
     # Check if this workflow calls another workflow which is unsaved (this is not allowed)
-    for hash_value, workflow_or_task in hash_dict.items():
-        if workflow_or_task['is_workflow']: # it is a workflow
-            if workflow_or_task['current_version'] is None: # It is not saved
-                if workflow_or_task['name'] != kwargs['name']: #It is not the "root" workflow
-                    return fail('Could not save. Workflow: {} calls an UNSAVED workflow: {}'.format(kwargs['name'],  workflow_or_task['name']))
+    for node in graph:
 
-    # Save all items in hash_dict and create a new dictionary with the saved objects
+        if not node['is_workflow']: # It is not a workflow
+            continue
+
+        if node['guid'] == main_guid: # It is not the main workflow
+            continue
+
+        if node['current_version'] is None: # It is not saved 
+            return fail('Could not save. Workflow: {} calls an UNSAVED workflow: {}'.format(main_node['name'],  node['name']))
+
+    #Fix the "calls"
+    guids_to_graph = {node['guid']:node for node in graph}
+    for node in graph:
+        node['calls'] = [{'name': guids_to_graph[callee_guid]['name'], 'current_version': guids_to_graph[callee_guid]['current_version']} for callee_guid in node['serial_calls']]
+
+    #Do the following three things:
+    #1. Add hash_value information 
+    #2. Take the hash of the main workflow
+    #3. Create a mapping from GUIDs to hash_values
+    from_guid_to_hash = {}
+    main_hash = None
+    guids_to_hashes = {}
+    for node in graph:
+        #print ('======')
+        #print(node)
+        node['hash_value'] = task_hash(node)
+
+        if node['guid'] == main_guid:
+            main_hash = node['hash_value']
+
+        guids_to_hashes[node['guid']] = node['hash_value']
+
+
+    assert not (main_hash is None)
+
+    # Save the graph and create a new dictionary with the saved objects
     hash_objects_dict = {
-        hash_value: save_task_or_workflow(request, hash_value, workflow_or_task) 
-        for hash_value, workflow_or_task in hash_dict.items()
+        node['hash_value']: save_task_or_workflow(request, node) 
+        for node in graph
     }
-    
-    #Add the who calls whom information
-    for hash_value, workflow_or_task in hash_dict.items():
-        this_workflow_called = [hash_objects_dict[task_hash(x)] for x in workflow_or_task['calls']]
-        if this_workflow_called:
-            hash_objects_dict[hash_value].calls.add(*this_workflow_called)
-            hash_objects_dict[hash_value].save()
 
+    #Add the who calls whom information
+    for node in graph:
+        this_node_called =[hash_objects_dict[guids_to_hashes[callee_guid]] for callee_guid in node['serial_calls']]
+        if this_node_called:
+            hash_objects_dict[node['hash_value']].calls.add(*this_node_called)
+            hash_objects_dict[node['hash_value']].save()
+ 
     #Update TaskStats. Perhaps can be done better with signals
-    update_TasksStats(hash_objects_dict[root_hash])
+    update_TasksStats(hash_objects_dict[main_hash])
 
     ret = {
-        'current_version': hash_objects_dict[root_hash].current_version,
-        'created_at': format_time(hash_objects_dict[root_hash].created_at),
+        'current_version': hash_objects_dict[main_hash].current_version,
+        'created_at': format_time(hash_objects_dict[main_hash].created_at),
     }
 
     return success(ret)
+
+@has_data
+def get_workflow(request, **kwargs):
+    '''
+    Creates a json object EXACTTLY the same as the one saved 
+
+                "name": node.workflow_name,
+                "bash": node.bash,
+                "current_version": node.current_version, // This is always null
+                "previous_version": node.previous_version,
+                "documentation": node.documentation,
+                "dependencies": node.tools_jstree_data,
+                "calls" : node.calls,
+                "inputs": node.inputs,
+                "outputs": node.outputs,
+                'is_workflow': true
+
+
+    '''
+
+    name = kwargs['name']
+    current_version = kwargs['current_version']
+
+    wf = Tasks.objects.get(name=name, current_version=current_version)
+    root_hash = task_hash(wf)
+    hash_dict = task_hash_dict(wf)
+
+    print ('hash_dict:')
+    print (hash_dict)
+
+#    ret = {}
+#    ret['workflow_name'] = wf.name
+#    ret['bash'] = wf.bash
+#    ret['current_version'] = wf.current_version
+#    ret['previous_version'] = wf.previous_version
+#    ret['documentation'] = wf.documentation
+
+    # Take dependencies
+    # def build_jstree_tool_dependencies(tool, prefix='', include_original=False):
+#    ret['dependencies'] = [build_jstree_tool_dependencies(tool, '7', True) for tool in wf.dependencies]
+
+
+    ret = {'test':'ok'}
+
+    return success(ret)
+
 
 @has_data
 def get_workflows(request, **kwargs):

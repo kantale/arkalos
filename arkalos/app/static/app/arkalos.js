@@ -253,7 +253,7 @@ $(document).on('dnd_move.vakata', function (e, data) {
 			data.helper.find('.jstree-icon').removeClass('jstree-ok').addClass('jstree-er');
 		}		
 	}
-	else if (tt_s[0] == '4') { // We are moving an item from the workflow tool table
+	else if ((tt_s[0] == '4') || (tt_s[0] == '6')) { // We are moving an item from the workflow tool table OR from the workflow table
 		if (t.closest('#d3wf').length) {
 			data.helper.find('.jstree-icon').removeClass('jstree-er').addClass('jstree-ok');
 		}
@@ -321,10 +321,15 @@ $(document).on('dnd_stop.vakata', function (e, data) {
 			});
 		}
 	}
-	else if (tt_s[0] == '4') { // We are moving an item from the workflow tool table
+	else if ((tt_s[0] == '4') || (tt_s[0] == '6')) { // We are moving an item from the workflow tool table OR from the workflow table
 		if (t.closest('#d3wf').length) {
 			angular.element($('#tools_table')).scope().$apply(function(){
-				angular.element($('#tools_table')).scope().wf_add_tool_in_graph({'name': tt_s[1], 'current_version': +tt_s[2]}, true, false);
+				if (tt_s[0] == '4') {
+					angular.element($('#tools_table')).scope().wf_add_tool_in_graph({'name': tt_s[1], 'current_version': +tt_s[2]}, true, false);
+				}
+				else if (tt_s[0] == '6') {
+					angular.element($('#tools_table')).scope().wf_add_workflow_in_graph({'name': tt_s[1], 'current_version': +tt_s[2]}, true, false);
+				}
 			});
 		}
 	}
