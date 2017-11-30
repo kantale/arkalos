@@ -1224,15 +1224,19 @@ def workflow_graph(workflow_or_task):
             'previous_version': node.previous_version,
             'documentation': node.documentation,
             'tools_jstree_data':  [build_jstree_tool_dependencies(tool, prefix='5', include_original=True) for x in node.dependencies.all()],
-            'inputs': simplejson.dumps(node.inputs),
-            'outputs': simplejson.dumps(node.outputs),
+            'inputs': simplejson.loads(node.inputs),
+            'outputs': simplejson.loads(node.outputs),
             'type': 'workflow' if node.is_workflow else 'task',
-            'hash_value': node.hash_field
+            'hash_value': node.hash_field,
+            'children': []
         }
 
         if node.is_workflow:
             ret['name'] = node.name + '_' + str(node.current_version)
             ret['workflow_name'] = node.name
+            ret['created_at'] = format_time(node.created_at)
+            ret['username'] = node.user.username
+
         else:
             ret['name'] = node.name
 

@@ -1223,7 +1223,42 @@ app.controller('arkalos_Ctrl', function($scope, $http, $timeout) {
 				'current_version': row['current_version']
 			},
 			function (response) {
-				console.log(response['test']);
+				var graph = response['graph'];
+				var main_hash = response['main_hash'];
+
+				//Search graph for the main node
+				for (var i=0; i<graph.length; i++) {
+					if (graph[i].hash_value == main_hash) {
+
+						//Add the node
+						$scope.wf_add_node(graph[i]);
+
+						console.log('Graph inputs:');
+						console.log(graph[i].inputs);
+
+						console.log('Graph outpus:');
+						console.log(graph[i].outputs);
+
+						//Add the input nodes
+						for (var j=0; j<graph[i].inputs.length; j++) {
+							var new_input_node = $scope.wf_add_input_node(graph[i].inputs[j], graph[i].name);
+							$scope.wf_add_task_input_edge(graph[i], new_input_node);
+						}
+
+						//Add the output nodes
+						for (var j=0; j<graph[i].outputs.length; j++) {
+							var new_output_node = $scope.wf_add_output_node(graph[i].outputs[j], graph[i].name);
+							$scope.wf_add_task_output_edge(graph[i], new_output_node);
+						}
+
+						$scope.update_workflow();
+
+						break;
+					}
+				}
+
+				//Add the calls data
+				
 			},
 			function (response) {
 				alert('This should not happen 581');
@@ -1518,6 +1553,24 @@ app.controller('arkalos_Ctrl', function($scope, $http, $timeout) {
 	};
 
 	/*
+	* Create and add to the graph a new input node
+	*/
+	$scope.wf_add_input_node = function(name, input_to_name) {
+		var new_input_node = {'name': name, 'type': 'input', 'input_to': input_to_name, "children": []};
+		$scope.wf_add_node(new_input_node);
+		return new_input_node;
+	};
+
+	/*
+	* Create and add to the graph a new ouput node
+	*/
+	$scope.wf_add_output_node = function(name, output_to_name) {
+		var new_output_node = {"name": name, "type": "output", "output_to": output_to_name, "children": []};
+		$scope.wf_add_node(new_output_node);
+		return new_output_node;
+	};
+
+	/*
 	* Add tool --> variables edges
 	*/
 	$scope.wf_add_tool_variables_edges = function(node) {
@@ -1674,6 +1727,21 @@ app.controller('arkalos_Ctrl', function($scope, $http, $timeout) {
 	};
 
 	/*
+	* Add Task --> Input edge			
+	*/
+	$scope.wf_add_task_input_edge = function(node_source, node_target) {
+		$scope.wf_add_edge(node_source, node_target, node_source.name + ' --i--> ' + node_target.name);
+	};
+
+	/*
+	* Add Task --> Output edge
+	*/
+	$scope.wf_add_task_output_edge = function(node_source, node_target) {
+		$scope.wf_add_edge(node_source, node_target, node_source.name + ' --o--> ' + node_target.name);
+	};
+
+
+	/*
 	* double clicked a node in wf
 	*/
 	$scope.wf_node_double_click = function(node) {
@@ -1738,6 +1806,14 @@ app.controller('arkalos_Ctrl', function($scope, $http, $timeout) {
 				else {
 					$scope.wf_current_version = 'N/A';
 				}
+
+				if (node.created_at) {
+					$scope.wf_created_at = node.created_at;
+				}
+
+				if (node.username) {
+					$scope.wf_username = node.username;
+				}
 			}
 		}
 	};
@@ -1767,6 +1843,7 @@ app.controller('arkalos_Ctrl', function($scope, $http, $timeout) {
 		$scope.wf_current_version = 'N/A';
 		$scope.wf_created_at = 'N/A';
 		$scope.wf_form_task_show = true;
+		$scope.wf_username = $scope.username;
 
 		//Empty the jstree
 		$('#wf_task_jstree').jstree(true).settings.core.data = [];
@@ -1900,11 +1977,11 @@ app.controller('arkalos_Ctrl', function($scope, $http, $timeout) {
 		for (var i=0; i<inputs.length; i++) {
 
 			//Add the input node
-			var new_input_node = {"name": inputs[i], "type": "input", "input_to": $scope.wf_task_name, "children": []};
-			$scope.wf_add_node(new_input_node);
+			var new_input_node =  $scope.wf_add_input_node(inputs[i], $scope.wf_task_name);
 
 			//Create an edge between the task and the input
-			$scope.wf_add_edge(new_node, new_input_node, $scope.wf_task_name + ' --i--> ' + inputs[i]);
+			//$scope.wf_add_edge(new_node, new_input_node, $scope.wf_task_name + ' --i--> ' + inputs[i]);
+			$scope.wf_add_task_input_edge(new_node, new_input_node);
 
 			//Add the input in inputs
 			new_node.inputs.push(inputs[i]);
@@ -1914,11 +1991,11 @@ app.controller('arkalos_Ctrl', function($scope, $http, $timeout) {
 		//Add the outputs
 		for (var i=0; i<outputs.length; i++) {
 			//Add the output node
-			var new_output_node = {"name": outputs[i], "type": "output", "output_to": $scope.wf_task_name, "children": []};
-			$scope.wf_add_node(new_output_node);
+			var new_output_node = $scope.wf_add_output_node(outputs[i], $scope.wf_task_name);
 
 			//Create an edge betweem the task and the output
-			$scope.wf_add_edge(new_node, new_output_node, $scope.wf_task_name + '--o--> ' + outputs[i]);
+			//$scope.wf_add_edge(new_node, new_output_node, $scope.wf_task_name + '--o--> ' + outputs[i]);
+			$scope.wf_add_task_output_edge(new_node, new_output_node);
 
 			//Add the output in outputs
 			new_node.outputs.push(outputs[i]);
