@@ -17,6 +17,7 @@ from app.models import Reference, Tools, Reports, Tasks, TasksStats
 import io
 import re
 import six
+import uuid
 import hashlib
 import simplejson
 
@@ -38,6 +39,12 @@ url_validator = URLValidator() # https://stackoverflow.com/questions/7160737/pyt
 
 class ArkalosException(Exception):
     pass
+
+def get_guid():
+    '''
+    Create a new guid
+    '''
+    return str(uuid.uuid4())
 
 def get_user_id(request):
     '''
@@ -1202,21 +1209,73 @@ def add_workflow(request, **kwargs):
 
     return success(ret)
 
+def workflow_graph(workflow_or_task):
+    '''
+    Create a  caller--callee graph identical to the one sent from angular for a workflow
+    '''
+
+    ret = []
+    all_hashes = []
+
+    def create_node(node):
+        ret = {
+            'bash': node.bash,
+            'current_version': node.current_version,
+            'previous_version': node.previous_version,
+            'documentation': node.documentation,
+            'tools_jstree_data':  [build_jstree_tool_dependencies(tool, prefix='5', include_original=True) for x in node.dependencies.all()],
+            'inputs': simplejson.dumps(node.inputs),
+            'outputs': simplejson.dumps(node.outputs),
+            'type': 'workflow' if node.is_workflow else 'task',
+            'hash_value': node.hash_field
+        }
+
+        if node.is_workflow:
+            ret['name'] = node.name + '_' + str(node.current_version)
+            ret['workflow_name'] = node.name
+        else:
+            ret['name'] = node.name
+
+        return ret
+
+    def workflow_graph_rec(node):
+
+        if node.hash_field in all_hashes:
+            return
+
+        all_hashes.append(node.hash_field)
+        ret_json = create_node(node)
+        ret_json['serial_calls'] = []
+        for callee in node.calls.all():
+            ret_json['serial_calls'].append(callee.hash_field)
+            workflow_graph_rec(callee)
+
+        ret.append(ret_json)
+
+    workflow_graph_rec(workflow_or_task)
+    return ret
+
+
+
+
 @has_data
 def get_workflow(request, **kwargs):
     '''
     Creates a json object EXACTTLY the same as the one saved 
 
-                "name": node.workflow_name,
+            return {
+                "name": node.type == 'workflow' ? node.workflow_name : node.name,
                 "bash": node.bash,
                 "current_version": node.current_version, // This is always null
                 "previous_version": node.previous_version,
                 "documentation": node.documentation,
                 "dependencies": node.tools_jstree_data,
-                "calls" : node.calls,
+                "serial_calls" : node.serial_calls,
                 "inputs": node.inputs,
                 "outputs": node.outputs,
-                'is_workflow': true
+                "type": node.type,
+                "guid": node.guid
+            };
 
 
     '''
@@ -1225,25 +1284,14 @@ def get_workflow(request, **kwargs):
     current_version = kwargs['current_version']
 
     wf = Tasks.objects.get(name=name, current_version=current_version)
-    root_hash = task_hash(wf)
-    hash_dict = task_hash_dict(wf)
+    graph = workflow_graph(wf)
+#    print ('ret:')
+#    print (ret)
 
-    print ('hash_dict:')
-    print (hash_dict)
-
-#    ret = {}
-#    ret['workflow_name'] = wf.name
-#    ret['bash'] = wf.bash
-#    ret['current_version'] = wf.current_version
-#    ret['previous_version'] = wf.previous_version
-#    ret['documentation'] = wf.documentation
-
-    # Take dependencies
-    # def build_jstree_tool_dependencies(tool, prefix='', include_original=False):
-#    ret['dependencies'] = [build_jstree_tool_dependencies(tool, '7', True) for tool in wf.dependencies]
-
-
-    ret = {'test':'ok'}
+    ret = {
+        'graph': graph,
+        'main_hash': wf.hash_field
+    }
 
     return success(ret)
 

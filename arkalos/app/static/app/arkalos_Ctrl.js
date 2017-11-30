@@ -1929,6 +1929,19 @@ app.controller('arkalos_Ctrl', function($scope, $http, $timeout) {
 			//Does this node exist?
 			var target_task_node = $scope.wf_get_node(calls[i]); //Get the node by name
 
+			//Dirty. Check if this is a workflow. Search by workflow_name istead of name! FIXME
+			if (!target_task_node) {
+				for (var j=0; j<$scope.wf.nodes.length; j++) {
+					if ($scope.wf.nodes[j].type == 'workflow') {
+						if ($scope.wf.nodes[j].workflow_name == calls[i]) {
+							target_task_node = $scope.wf.nodes[j];
+							break;
+						}
+					}
+				}
+			}
+
+
 			if (target_task_node) {
 				//Is this node a task or a workflow?
 				if (target_task_node.type == 'task' || target_task_node.type == 'workflow') {
