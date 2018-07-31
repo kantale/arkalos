@@ -1289,7 +1289,8 @@ app.controller('arkalos_Ctrl', function($scope, $http, $timeout) {
 				},
 				function(response) {
 
-					$scope.wf["nodes"].wf_add_node({
+					//$scope.wf["nodes"].wf_add_node({
+					$scope.wf_add_node({
 						"name": new_node_node_name, 
 						"type": "tool", 
 						"current_version": row['current_version'], 
@@ -1313,7 +1314,8 @@ app.controller('arkalos_Ctrl', function($scope, $http, $timeout) {
 		else {
 			// We have the dependencies. No need for ajax
 
-			$scope.wf["nodes"].wf_add_node({
+			//$scope.wf["nodes"].wf_add_node({
+			$scope.wf_add_node({
 				"name": new_node_node_name, 
 				"type": "tool", 
 				"current_version": row['current_version'], 
@@ -1334,7 +1336,8 @@ app.controller('arkalos_Ctrl', function($scope, $http, $timeout) {
 	*/
 	$scope.wf_add_variable_in_graph = function(variable, row) {
 		var new_node_node_name = variable[0];
-		$scope.wf["nodes"].wf_add_node({
+		//$scope.wf["nodes"].wf_add_node({
+		$scope.wf_add_node({
 			"name": new_node_node_name, 
 			"type": "variable", 
 			"current_version": row["current_version"], 
